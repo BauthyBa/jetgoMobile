@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "redirects": [{ "source": "/favicon.ico", "destination": "/vite.svg", "permanent": false }],
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
