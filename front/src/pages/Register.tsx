@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { registerUser } from '../api'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { DecodeHintType, BarcodeFormat } from '@zxing/library'
 
 export default function Register() {
+  const navigate = useNavigate()
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -234,6 +236,7 @@ export default function Register() {
           <div className="actions">
             <button className="btn" type="submit" disabled={loading || scanning}>{loading ? 'Enviando...' : (scanning ? 'Leyendo...' : 'Crear cuenta')}</button>
             <button className="btn secondary" type="button" onClick={() => { setForm({ ...form, first_name: '', last_name: '', document_number: '', sex: 'M', birth_date: '', dni_front_payload: '' }); setScanned(null); if (imgRef.current) imgRef.current.src = ''; }}>Limpiar</button>
+            <button className="btn secondary" type="button" onClick={() => navigate(-1)}>Atrás</button>
             <span className="muted">{scanning ? 'Procesando imagen...' : ''}</span>
           </div>
           {ok && <p className="success">Revisa tu correo para confirmar la cuenta. Luego podés iniciar sesión.</p>}

@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { login } from '../api'
 
 export default function Login() {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -38,6 +40,7 @@ export default function Login() {
           </div>
           <div className="actions">
             <button className="btn" type="submit" disabled={loading}>{loading ? 'Ingresando...' : 'Ingresar'}</button>
+            <button className="btn secondary" type="button" onClick={() => navigate(-1)}>Atrás</button>
           </div>
           {ok && <p className="success">Sesión iniciada. Token guardado.</p>}
           {error && <pre className="error">{error}</pre>}
