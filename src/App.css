@@ -1,5 +1,5 @@
-main {
-  min-height: 100vh;
+.home {
+  min-height: calc(100vh - var(--header-h));
   display: grid;
   place-items: center;
   padding: clamp(1rem, 3vw, 2.5rem);
