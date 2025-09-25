@@ -1,13 +1,16 @@
 .home {
-  min-height: calc(100vh - var(--header-h));
-  display: grid;
-  place-items: center;
-  padding: clamp(1rem, 3vw, 2.5rem);
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(16px, 3vw, 24px);
+  width: 100%;
 }
 
 .glass {
   position: relative;
   width: min(920px, 92vw);
+  margin: 0 auto;
   border-radius: 20px;
   padding: clamp(1.25rem, 3vw, 2.25rem);
   background: linear-gradient(

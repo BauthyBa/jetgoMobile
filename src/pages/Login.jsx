@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login } from '../services/api'
+import { signInWithGoogle } from '../services/supabase'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -41,6 +42,7 @@ export default function Login() {
           </div>
           <div className="actions">
             <button className="btn" type="submit" disabled={loading}>{loading ? 'Ingresando...' : 'Ingresar'}</button>
+            <button className="btn secondary" type="button" onClick={async () => { try { await signInWithGoogle('/dashboard') } catch (e) { setError(e.message) } }}>Continuar con Google</button>
           </div>
           {ok && <p className="success">Sesión iniciada. Token guardado.</p>}
           {error && <pre className="error">{error}</pre>}

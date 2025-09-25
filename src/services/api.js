@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { supabase } from './supabase'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
 
@@ -62,6 +63,16 @@ export async function registerUser(payload) {
 export async function login(email, password) {
   const { data } = await apiPublic.post('/auth/login/', { email, password })
   setAuthToken(data.access)
+  try {
+    await supabase.auth.setSession({ access_token: data.access, refresh_token: data.refresh })
+  } catch (e) {
+    // ignore if cannot set session; dashboard will still work with backend
+  }
+  return data
+}
+
+export async function upsertProfileToBackend(payload) {
+  const { data } = await api.post('/auth/upsert_profile/', payload)
   return data
 }
 

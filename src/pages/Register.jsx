@@ -2,8 +2,15 @@ import { useRef, useState } from 'react'
 import { registerUser } from '../services/api'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { DecodeHintType, BarcodeFormat } from '@zxing/library'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { getSession, updateUserMetadata } from '../services/supabase'
+import { upsertProfileToBackend } from '../services/api'
+import { signInWithGoogle, supabase } from '../services/supabase'
 
 export default function Register() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const googleMode = new URLSearchParams(location.search).get('mode') === 'google'
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -185,8 +192,93 @@ export default function Register() {
       if (form.birth_date !== parsed.birthISO) mismatches.push('Fecha de nacimiento')
       if (mismatches.length) throw new Error(`Los siguientes campos no coinciden con el DNI: ${mismatches.join(', ')}`)
 
-      await registerUser(form)
-      setOk(true)
+      if (googleMode) {
+        try {
+          const session = await getSession()
+          const supaEmail = session?.user?.email || ''
+          if (supaEmail) {
+            // Generar una contraseña aleatoria solo para cumplir con el backend
+            const randArray = new Uint8Array(16)
+            crypto.getRandomValues(randArray)
+            const randomPassword = Array.from(randArray).map((b) => b.toString(16).padStart(2, '0')).join('')
+            await registerUser({
+              first_name: form.first_name,
+              last_name: form.last_name,
+              document_number: form.document_number,
+              sex: form.sex,
+              birth_date: form.birth_date,
+              email: supaEmail,
+              password: randomPassword,
+              dni_front_payload: text,
+            })
+            localStorage.setItem('dni_meta', JSON.stringify({
+              first_name: form.first_name,
+              last_name: form.last_name,
+              document_number: form.document_number,
+              sex: form.sex,
+              birth_date: form.birth_date,
+            }))
+            // Guardar datos básicos en el user metadata de Supabase
+            await updateUserMetadata({
+              first_name: form.first_name,
+              last_name: form.last_name,
+              document_number: form.document_number,
+              sex: form.sex,
+              birth_date: form.birth_date,
+              dni_verified: true
+            })
+            // Upsert inmediato al backend (tabla public.User)
+            try {
+              await upsertProfileToBackend({
+                user_id: session?.user?.id,
+                email: supaEmail,
+                first_name: form.first_name,
+                last_name: form.last_name,
+                document_number: form.document_number,
+                sex: form.sex,
+                birth_date: form.birth_date,
+              })
+            } catch (e) {
+              console.warn('No se pudo upsert perfil al backend durante verificación:', e?.message || e)
+            }
+          }
+        } catch (e) {
+          // Si ya existe el email u otro error del backend, seguimos igualmente
+          console.warn('No se pudo guardar datos en backend:', e?.message || e)
+        }
+        localStorage.setItem('dni_verified', 'true')
+        setOk(true)
+        navigate('/dashboard')
+      } else {
+        // 1) Guardar en backend
+        await registerUser(form)
+        // 2) Enviar email de confirmación con Supabase (y guardar metadata)
+        try {
+          await supabase.auth.signUp({
+            email: form.email,
+            password: form.password,
+            options: { emailRedirectTo: window.location.origin + '/login', data: {
+              first_name: form.first_name,
+              last_name: form.last_name,
+              document_number: form.document_number,
+              sex: form.sex,
+              birth_date: form.birth_date,
+              dni_verified: true,
+            } }
+          })
+          localStorage.setItem('dni_meta', JSON.stringify({
+            first_name: form.first_name,
+            last_name: form.last_name,
+            document_number: form.document_number,
+            sex: form.sex,
+            birth_date: form.birth_date,
+          }))
+        } catch (e) {
+          console.warn('No se pudo iniciar signUp en Supabase:', e?.message || e)
+        }
+        localStorage.setItem('dni_verified', 'true')
+        setOk(true)
+      }
     } catch (err) {
       setError(err?.response?.data ? JSON.stringify(err.response.data) : err.message)
       setScanStatus('error')
@@ -203,7 +295,7 @@ export default function Register() {
         <div className="card">
           <h2 className="page-title">Registro</h2>
           <p className="muted">Subí la foto del frente del DNI para verificar tus datos. Ingresá tus datos manualmente en los campos de abajo.</p>
-          <form className="form" onSubmit={handleSubmit}>
+          <form className="form form-grid" onSubmit={handleSubmit}>
             <div className="field">
               <label>Foto del DNI (frente)</label>
               <input type="file" accept="image/*" onChange={handleImageChange} />
@@ -241,17 +333,21 @@ export default function Register() {
               <label>Fecha de nacimiento</label>
               <input type="date" name="birth_date" value={form.birth_date} onChange={handleChange} required />
             </div>
-            <div className="field">
-              <label>Correo</label>
-              <input type="email" name="email" value={form.email} onChange={handleChange} required />
-            </div>
-            <div className="field">
-              <label>Contraseña</label>
-              <input type="password" name="password" value={form.password} onChange={handleChange} required />
-            </div>
+            {!googleMode && (
+              <>
+                <div className="field">
+                  <label>Correo</label>
+                  <input type="email" name="email" value={form.email} onChange={handleChange} required />
+                </div>
+                <div className="field">
+                  <label>Contraseña</label>
+                  <input type="password" name="password" value={form.password} onChange={handleChange} required />
+                </div>
+              </>
+            )}
             <input type="hidden" name="dni_front_payload" value={form.dni_front_payload} />
             <div className="actions">
-              <button className="btn" type="submit" disabled={loading || scanning}>{loading ? 'Enviando...' : (scanning ? 'Leyendo...' : 'Crear cuenta')}</button>
+              <button className="btn" type="submit" disabled={loading || scanning}>{googleMode ? (loading || scanning ? 'Verificando…' : 'Verificar DNI') : (loading ? 'Enviando...' : (scanning ? 'Leyendo...' : 'Crear cuenta'))}</button>
               <button className="btn secondary" type="button" onClick={() => { setForm({ ...form, first_name: '', last_name: '', document_number: '', sex: 'M', birth_date: '', dni_front_payload: '', dni_image_file: null, dni_image_url: '', dni_back_file: null, dni_back_url: '' }); if (imgRef.current) imgRef.current.src = ''; if (backImgRef.current) backImgRef.current.src = ''; }}>Limpiar</button>
               <span className="muted">{scanning ? 'Procesando imagen...' : ''}</span>
             </div>
