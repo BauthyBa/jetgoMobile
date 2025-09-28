@@ -12,9 +12,9 @@
   --bg-1: #101c3f;
   --bg-2: #152652;
   --bg-3: #1d3574;
-  --blue-300: #7cc9ff;
-  --blue-400: #8ab7ff;
-  --blue-500: #5aa1ff;
+  --blue-300: #9beaff;
+  --blue-400: #7fddff;
+  --blue-500: #49d3ff;
   --text-primary: #f0f6ff;
   --text-secondary: #c8dcff;
   --glass-bg: rgba(20, 32, 68, 0.55);
@@ -33,8 +33,8 @@ body {
   display: block;
   color: var(--text-primary);
   background:
-    radial-gradient(1200px 800px at 10% 15%, rgba(17, 71, 166, 0.45), rgba(0, 0, 0, 0) 60%),
-    radial-gradient(1000px 700px at 85% 25%, rgba(11, 82, 214, 0.35), rgba(0, 0, 0, 0) 55%),
+    radial-gradient(1200px 800px at 10% 15%, rgba(38, 188, 245, 0.35), rgba(0, 0, 0, 0) 60%),
+    radial-gradient(1000px 700px at 85% 25%, rgba(73, 211, 255, 0.28), rgba(0, 0, 0, 0) 55%),
     linear-gradient(180deg, var(--bg-0) 0%, var(--bg-2) 55%, var(--bg-1) 100%);
   background-attachment: fixed, fixed, fixed;
   overflow-x: hidden;
@@ -49,8 +49,8 @@ body::before {
   z-index: 0;
   border-radius: 50%;
   background:
-    radial-gradient(closest-side, rgba(96, 165, 255, 0.18), rgba(96, 165, 255, 0) 65%),
-    radial-gradient(closest-side at 70% 40%, rgba(58, 130, 246, 0.12), rgba(58, 130, 246, 0) 70%);
+    radial-gradient(closest-side, rgba(73, 211, 255, 0.18), rgba(73, 211, 255, 0) 65%),
+    radial-gradient(closest-side at 70% 40%, rgba(124, 231, 255, 0.12), rgba(124, 231, 255, 0) 70%);
   filter: blur(60px) saturate(130%);
   animation: float-blob 18s ease-in-out infinite alternate;
   mix-blend-mode: screen;
@@ -92,12 +92,12 @@ button {
   -webkit-backdrop-filter: blur(12px) saturate(160%);
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  box-shadow: 0 8px 24px rgba(0, 86, 179, 0.35), inset 0 0 0 1px rgba(255,255,255,0.04);
+  box-shadow: 0 8px 24px rgba(0, 164, 224, 0.35), inset 0 0 0 1px rgba(255,255,255,0.04);
 }
 button:hover {
   transform: translateY(-1px);
-  border-color: rgba(168, 199, 255, 0.55);
-  box-shadow: 0 12px 32px rgba(0, 86, 179, 0.45), inset 0 0 0 1px rgba(255,255,255,0.06);
+  border-color: rgba(155, 235, 255, 0.55);
+  box-shadow: 0 12px 32px rgba(0, 164, 224, 0.45), inset 0 0 0 1px rgba(255,255,255,0.06);
 }
 button:active {
   transform: translateY(0);
@@ -125,10 +125,10 @@ h1 {
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 14px; color: #cfd6e4; }
 .field input, .field select { background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); border: 1px solid var(--glass-stroke); color: var(--text-primary); padding: 10px 12px; border-radius: 12px; outline: none; backdrop-filter: blur(10px) saturate(140%); -webkit-backdrop-filter: blur(10px) saturate(140%); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05); }
-.field input:focus, .field select:focus { border-color: rgba(168, 199, 255, 0.55); box-shadow: 0 0 0 3px rgba(96, 165, 255, 0.2), inset 0 0 0 1px rgba(255,255,255,0.06); }
+.field input:focus, .field select:focus { border-color: rgba(155, 235, 255, 0.55); box-shadow: 0 0 0 3px rgba(73, 211, 255, 0.2), inset 0 0 0 1px rgba(255,255,255,0.06); }
 .actions { display: flex; gap: 12px; align-items: center; justify-content: flex-start; margin-top: 8px; }
-.btn { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 16px; border-radius: 12px; color: var(--text-primary); border: 1px solid var(--glass-stroke); background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04)); backdrop-filter: blur(12px) saturate(160%); -webkit-backdrop-filter: blur(12px) saturate(160%); box-shadow: 0 8px 24px rgba(0, 86, 179, 0.35), inset 0 0 0 1px rgba(255,255,255,0.04); transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
-.btn:hover { transform: translateY(-1px); border-color: rgba(168, 199, 255, 0.55); box-shadow: 0 12px 32px rgba(0, 86, 179, 0.45), inset 0 0 0 1px rgba(255,255,255,0.06); }
+.btn { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 16px; border-radius: 12px; color: var(--text-primary); border: 1px solid var(--glass-stroke); background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04)); backdrop-filter: blur(12px) saturate(160%); -webkit-backdrop-filter: blur(12px) saturate(160%); box-shadow: 0 8px 24px rgba(0, 164, 224, 0.35), inset 0 0 0 1px rgba(255,255,255,0.04); transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease; }
+.btn:hover { transform: translateY(-1px); border-color: rgba(155, 235, 255, 0.55); box-shadow: 0 12px 32px rgba(0, 164, 224, 0.45), inset 0 0 0 1px rgba(255,255,255,0.06); }
 .btn.secondary { background: transparent; color: var(--text-primary); border: 1px solid var(--glass-stroke); }
 .error { color: #ff7b7b; white-space: pre-wrap; }
 .success { color: #7bff9c; }

@@ -33,8 +33,8 @@
   inset: 0;
   border-radius: inherit;
   padding: 1px; /* thin glowing border */
-  background: radial-gradient(120% 120% at 10% 10%, rgba(90, 200, 250, 0.55), rgba(96, 165, 255, 0.0) 50%),
-              radial-gradient(120% 120% at 90% 20%, rgba(96, 165, 255, 0.35), rgba(96, 165, 255, 0.0) 60%);
+  background: radial-gradient(120% 120% at 10% 10%, rgba(95, 230, 255, 0.55), rgba(124, 231, 255, 0.0) 50%),
+              radial-gradient(120% 120% at 90% 20%, rgba(73, 211, 255, 0.35), rgba(73, 211, 255, 0.0) 60%);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
           mask-composite: exclude;
@@ -45,7 +45,7 @@ h1 {
   margin: 0 0 0.5rem 0;
   font-weight: 800;
   letter-spacing: 0.2px;
-  text-shadow: 0 2px 24px rgba(59, 130, 246, 0.35);
+  text-shadow: 0 2px 24px rgba(73, 211, 255, 0.35);
 }
 
 p {

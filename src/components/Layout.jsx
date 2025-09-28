@@ -1,10 +1,8 @@
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { getSession, supabase } from '../services/supabase'
 
 export default function Layout() {
-  const location = useLocation()
-  const isHome = location.pathname === '/'
   const [loggedIn, setLoggedIn] = useState(false)
 
   useEffect(() => {
@@ -17,19 +15,26 @@ export default function Layout() {
   }, [])
   return (
     <div>
-      {!isHome && (
-        <header className="header">
-          <div className="header-inner">
-            <Link to="/" className="brand">JetGo</Link>
+      <header className="header">
+        <div className="header-inner">
+          <nav className="nav">
+            <Link to="/#viajes">Viajes</Link>
+            <Link to="/#herramientas">Herramientas</Link>
+            <Link to="/#sobre-nosotros">Sobre nosotros</Link>
+            <Link to="/#soporte">Soporte</Link>
             {!loggedIn && (
-              <nav className="nav">
-                <Link to="/register">Registro</Link>
-                <Link to="/login">Login</Link>
-              </nav>
+              <>
+                <Link to="/login">Iniciar sesión</Link>
+                <Link to="/signup">Registrarse</Link>
+              </>
             )}
-          </div>
-        </header>
-      )}
+          </nav>
+          <Link to="/" className="brand" aria-label="JetGo">
+            <img src="/jetgo.svg" alt="" width="20" height="20" style={{ verticalAlign: 'middle', marginRight: 8 }} />
+            JetGo
+          </Link>
+        </div>
+      </header>
       <main className="container">
         <Outlet />
       </main>
