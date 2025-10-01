@@ -292,7 +292,7 @@ export default function Register() {
   return (
     <>
       <div className="container">
-        <div className="card">
+        <div className="card glass-card">
           <h2 className="page-title">Registro</h2>
           <p className="muted">Subí la foto del frente del DNI para verificar tus datos. Ingresá tus datos manualmente en los campos de abajo.</p>
           <form className="form form-grid" onSubmit={handleSubmit}>

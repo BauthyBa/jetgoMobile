@@ -29,7 +29,7 @@ export default function Login() {
 
   return (
     <div className="container">
-      <div className="card">
+      <div className="card glass-card">
         <h2 className="page-title">Iniciar sesión</h2>
         <form className="form" onSubmit={handleSubmit}>
           <div className="field">

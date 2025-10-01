@@ -57,6 +57,13 @@ api.interceptors.response.use(
 
 export async function registerUser(payload) {
   const { data } = await apiPublic.post('/auth/register/', payload)
+  try {
+    if (payload?.email && payload?.password) {
+      await supabase.auth.signUp({ email: payload.email, password: payload.password })
+    }
+  } catch (_e) {
+    // No bloquear registro backend si Supabase falla; el usuario podrá loguearse luego
+  }
   return data
 }
 
@@ -64,9 +71,9 @@ export async function login(email, password) {
   const { data } = await apiPublic.post('/auth/login/', { email, password })
   setAuthToken(data.access)
   try {
-    await supabase.auth.setSession({ access_token: data.access, refresh_token: data.refresh })
-  } catch (e) {
-    // ignore if cannot set session; dashboard will still work with backend
+    await supabase.auth.signInWithPassword({ email, password })
+  } catch (_e) {
+    // Si falla Supabase, el dashboard básico funciona, pero el chat (RLS) no.
   }
   return data
 }
