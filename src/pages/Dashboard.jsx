@@ -155,7 +155,7 @@ export default function Dashboard() {
                 <div className="field">
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <input value={trip.name} onChange={(e)=>setTrip((t)=>({...t,name:e.target.value}))} placeholder="Nombre" />
-                    <input value={trip.date} onChange={(e)=>setTrip((t)=>({...t,date:e.target.value}))} placeholder="Fecha (YYYY-MM-DD)" />
+                    <input type="date" value={trip.date} onChange={(e)=>setTrip((t)=>({...t,date:e.target.value}))} />
                     <input value={trip.origin} onChange={(e)=>setTrip((t)=>({...t,origin:e.target.value}))} placeholder="Origen" />
                     <input value={trip.destination} onChange={(e)=>setTrip((t)=>({...t,destination:e.target.value}))} placeholder="Destino" />
                   </div>
