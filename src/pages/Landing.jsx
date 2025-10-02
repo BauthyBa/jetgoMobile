@@ -7,7 +7,7 @@ import CTA from '@/components/CTA'
 
 export default function Landing() {
   return (
-    <div>
+    <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white">
       <Navigation />
       <HeroSection />
       <HowItWorks />

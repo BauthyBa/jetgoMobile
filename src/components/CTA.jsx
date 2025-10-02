@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { getSession, supabase } from '@/services/supabase'
 import { ArrowRight, Smartphone } from 'lucide-react'
+import ColorBar from '@/components/ColorBar'
 
 export default function CTA() {
   const [loggedIn, setLoggedIn] = useState(false)
@@ -15,28 +16,29 @@ export default function CTA() {
     return () => { mounted = false; subscription.unsubscribe() }
   }, [])
   return (
-    <section className="py-20 bg-gradient-hero">
+    <section className="py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div className="glass-card rounded-3xl p-8 md:p-16">
-          <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">¿Listo para tu próximo viaje?</h2>
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-3xl p-8 md:p-16 border border-slate-700/50 shadow-2xl">
+          <h2 className="text-4xl md:text-6xl font-bold text-white mb-4">¿Listo para tu próximo viaje?</h2>
+          <div className="flex justify-center mb-6"><ColorBar className="w-48 rounded-full" /></div>
           <p className="text-xl text-white/90 mb-12 max-w-2xl mx-auto">Únete a miles viajando inteligente, económico y sostenible</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             {loggedIn ? (
               <Link to="/dashboard">
-                <Button size="lg" className="bg-white text-black hover:bg-white/90 px-8 py-4 text-lg">
+                <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-8 py-4 text-lg">
                   Ir al dashboard
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
             ) : (
               <Link to="/login">
-                <Button size="lg" className="bg-white text-black hover:bg-white/90 px-8 py-4 text-lg">
+                <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-8 py-4 text-lg">
                   Comenzar ahora
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
             )}
-            <Button size="lg" variant="outline" className="border-white text-black bg-white/90 hover:bg-white px-8 py-4 text-lg">
+            <Button size="lg" variant="outline" className="border-slate-600 text-white bg-transparent hover:bg-slate-700 px-8 py-4 text-lg">
               <Smartphone className="mr-2 h-5 w-5" />
               Descargar app
             </Button>
