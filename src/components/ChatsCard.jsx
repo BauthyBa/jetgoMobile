@@ -1,6 +1,6 @@
 import GlassCard from './GlassCard'
 
-export default function ChatsCard({ rooms = [] }) {
+export default function ChatsCard({ rooms = [], onOpen }) {
   const count = rooms.length
   return (
     <GlassCard>
@@ -10,12 +10,20 @@ export default function ChatsCard({ rooms = [] }) {
       </div>
       <div style={{ display: 'grid', gap: 8, maxHeight: 360, overflow: 'auto' }}>
         {rooms.map((r) => (
-          <div key={r.id} className="card" style={{ padding: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)' }}>
+          <div key={r.id} className="glass-card" style={{ padding: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
               <div style={{ overflow: 'hidden' }}>
                 <div style={{ fontWeight: 600 }}>{r.name}</div>
               </div>
-              <a href="#chats" className="btn secondary" style={{ height: 32 }}>Abrir</a>
+              <button
+                type="button"
+                className="btn secondary"
+                style={{ height: 32 }}
+                onClick={() => onOpen && onOpen(r)}
+                aria-label={`Abrir chat ${r.name}`}
+              >
+                Abrir
+              </button>
             </div>
           </div>
         ))}
