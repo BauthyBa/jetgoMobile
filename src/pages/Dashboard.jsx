@@ -58,6 +58,8 @@ export default function Dashboard() {
   })
   const [participantsMode, setParticipantsMode] = useState('manual')
   const [participantsTripId, setParticipantsTripId] = useState('')
+  const [splitMode, setSplitMode] = useState('all')
+  const [splitSelected, setSplitSelected] = useState([])
 
   useEffect(() => {
     let mounted = true
@@ -167,6 +169,15 @@ export default function Dashboard() {
     } catch { setExpenses([]) }
   }, [expensesTripId])
 
+  // Keep split selection in sync with participants and mode
+  useEffect(() => {
+    if (splitMode === 'all') {
+      setSplitSelected(participants)
+    } else {
+      setSplitSelected((prev) => prev.filter((p) => participants.includes(p)))
+    }
+  }, [participants, splitMode])
+
   useEffect(() => {
     // Scroll when the hash changes via router navigation
     const hash = location.hash || '#inicio'
@@ -271,14 +282,22 @@ export default function Dashboard() {
       if (!tripId) return
       // Load from backend to avoid RLS/view issues and ensure full list
       const res = await api.get('/trips/members/', { params: { trip_id: tripId } })
-      const ids = Array.isArray(res?.data?.members) ? res.data.members.map((x) => x.user_id) : []
+      const members = Array.isArray(res?.data?.members) ? res.data.members : []
+      const ids = members.map((x) => x.user_id)
       if (ids.length === 0) {
         alert('Este viaje no tiene participantes aún')
         return
       }
       // 3) Resolve names
       const map = await fetchNamesForUserIds(ids)
-      const names = ids.map((id) => (id === profile?.user_id ? (profile?.meta?.first_name && profile?.meta?.last_name ? `${profile.meta.first_name} ${profile.meta.last_name}` : 'Tú') : (map[id] || id)))
+      const names = members.map((m) => {
+        const id = m.user_id
+        if (profile?.user_id && id === profile.user_id) {
+          if (profile?.meta?.first_name && profile?.meta?.last_name) return `${profile.meta.first_name} ${profile.meta.last_name}`
+          return 'Tú'
+        }
+        return m.name || map[id] || id
+      })
       setParticipants(Array.from(new Set(names)))
       setExpensesTripId(tripId)
     } catch (e) {
@@ -571,7 +590,7 @@ export default function Dashboard() {
 
                   <div className="glass-card" style={{ padding: 12 }}>
                     <h4 style={{ fontWeight: 700, marginBottom: 8 }}>Nuevo gasto</h4>
-                    <div className="form" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 8 }}>
+                    <div className="form" style={{ gridTemplateColumns: '2fr 1fr 1fr', gap: 8 }}>
                       <div className="field">
                         <label>Descripción</label>
                         <input id="exp_desc" placeholder="Ej: Cena" />
@@ -587,28 +606,63 @@ export default function Dashboard() {
                           {participants.map((p) => <option key={p} value={p}>{p}</option>)}
                         </select>
                       </div>
-                      <div className="field">
-                        <label>Dividir entre</label>
-                        <select id="exp_split_between" defaultValue="all">
-                          <option value="all">Todos</option>
-                          <option value="custom">Personalizado</option>
-                        </select>
+                    </div>
+                    <div className="field" style={{ marginTop: 8 }}>
+                      <label>Dividir entre</label>
+                      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <input
+                            type="radio"
+                            name="split_mode"
+                            checked={splitMode === 'all'}
+                            onChange={() => setSplitMode('all')}
+                          />
+                          Todos
+                        </label>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <input
+                            type="radio"
+                            name="split_mode"
+                            checked={splitMode === 'custom'}
+                            onChange={() => setSplitMode('custom')}
+                          />
+                          Personalizado
+                        </label>
+                        {splitMode === 'all' && participants.length > 0 && (
+                          <button type="button" className="btn secondary" style={{ height: 32 }} onClick={() => setSplitSelected(participants)}>Marcar todos</button>
+                        )}
                       </div>
+                      {splitMode === 'custom' && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8, marginTop: 8 }}>
+                          {participants.map((p) => (
+                            <label key={p} className="glass-card" style={{ padding: 8, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                              <input
+                                type="checkbox"
+                                checked={splitSelected.includes(p)}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSplitSelected((prev) => Array.from(new Set([...prev, p])))
+                                  else setSplitSelected((prev) => prev.filter((x) => x !== p))
+                                }}
+                              />
+                              <span>{p}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="actions">
                       <Button onClick={() => {
                         const desc = document.getElementById('exp_desc')?.value || ''
                         const amount = Number(document.getElementById('exp_amount')?.value || '0')
                         const paidBy = document.getElementById('exp_paid_by')?.value || ''
-                        const splitBetween = document.getElementById('exp_split_between')?.value || 'all'
                         if (!desc.trim() || !amount || !paidBy) return alert('Completá descripción, monto y pagador')
-                        const people = splitBetween === 'all' ? participants : participants // TODO: custom picker
+                        const people = splitMode === 'all' ? participants : splitSelected
                         if (!people || people.length === 0) return alert('Agregá participantes')
                         setExpenses((prev) => [...prev, { id: Date.now(), desc, amount, paidBy, between: people }])
                         try { document.getElementById('exp_desc').value = '' } catch {}
                         try { document.getElementById('exp_amount').value = '' } catch {}
                         try { document.getElementById('exp_paid_by').value = '' } catch {}
-                        try { document.getElementById('exp_split_between').value = 'all' } catch {}
+                        setSplitMode('all')
                       }}>Agregar gasto</Button>
                     </div>
                   </div>
