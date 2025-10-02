@@ -16,7 +16,7 @@ export default function Layout() {
     return () => { mounted = false; subscription.unsubscribe() }
   }, [])
   const isRoot = location.pathname === '/'
-  const hideHeaderOn = ['/verify-dni', '/dashboard']
+  const hideHeaderOn = ['/verify-dni', '/dashboard', '/login']
   const hideHeader = hideHeaderOn.some((p) => location.pathname.startsWith(p))
   return (
     <div>
