@@ -19,7 +19,19 @@ export default function Dashboard() {
   const [error, setError] = useState(null)
   const [rooms, setRooms] = useState([])
   
-  const [trip, setTrip] = useState({ name: '', origin: '', destination: '', date: '' })
+  const [trip, setTrip] = useState({
+    name: '',
+    origin: '',
+    destination: '',
+    startDate: '',
+    endDate: '',
+    budgetMin: '',
+    budgetMax: '',
+    status: '',
+    roomType: '',
+    season: '',
+    country: ''
+  })
   const [tab, setTab] = useState('chats')
   const [tripsBase, setTripsBase] = useState([])
   const [trips, setTrips] = useState([])
@@ -27,6 +39,7 @@ export default function Dashboard() {
   const [activeRoomId, setActiveRoomId] = useState(null)
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
+  const [userNames, setUserNames] = useState({})
   const [inviteEmail, setInviteEmail] = useState('')
   const [unsub, setUnsub] = useState(null)
   const navigate = useNavigate()
@@ -34,6 +47,17 @@ export default function Dashboard() {
   const budgetTrips = trips.filter((t) => t && (t.budgetMin != null || t.budgetMax != null))
   const section = (location.hash || '#inicio').replace('#', '')
   const [showCreate, setShowCreate] = useState(false)
+  // Expenses state (local, per user)
+  const [expensesTripId, setExpensesTripId] = useState('')
+  const storageKey = (suffix) => `exp_${suffix}_${expensesTripId || 'global'}`
+  const [participants, setParticipants] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey('participants')) || '[]') } catch { return [] }
+  })
+  const [expenses, setExpenses] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey('expenses')) || '[]') } catch { return [] }
+  })
+  const [participantsMode, setParticipantsMode] = useState('manual')
+  const [participantsTripId, setParticipantsTripId] = useState('')
 
   useEffect(() => {
     let mounted = true
@@ -126,6 +150,24 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
+    try { localStorage.setItem(storageKey('participants'), JSON.stringify(participants)) } catch {}
+  }, [participants, expensesTripId])
+  useEffect(() => {
+    try { localStorage.setItem(storageKey('expenses'), JSON.stringify(expenses)) } catch {}
+  }, [expenses, expensesTripId])
+  useEffect(() => {
+    // Load persisted when changing selected expenses trip
+    try {
+      const p = JSON.parse(localStorage.getItem(storageKey('participants')) || '[]')
+      setParticipants(Array.isArray(p) ? p : [])
+    } catch { setParticipants([]) }
+    try {
+      const e = JSON.parse(localStorage.getItem(storageKey('expenses')) || '[]')
+      setExpenses(Array.isArray(e) ? e : [])
+    } catch { setExpenses([]) }
+  }, [expensesTripId])
+
+  useEffect(() => {
     // Scroll when the hash changes via router navigation
     const hash = location.hash || '#inicio'
     const id = hash.replace('#', '')
@@ -154,11 +196,13 @@ export default function Dashboard() {
       window.location.hash = '#chats'
       const initial = await fetchMessages(roomId)
       setMessages(initial)
+      await resolveNamesForMessages(initial)
       if (unsub) {
         try { unsub() } catch {}
       }
       const unsubscribe = subscribeToRoomMessages(roomId, (msg) => {
         setMessages((prev) => [...prev, msg])
+        resolveNamesForMessages([msg])
       })
       setUnsub(() => unsubscribe)
     } catch (e) {
@@ -174,6 +218,71 @@ export default function Dashboard() {
       if (saved) setNewMessage('')
     } catch (e) {
       alert(e?.message || 'No se pudo enviar el mensaje')
+    }
+  }
+
+  const getSenderLabel = (m) => {
+    const uid = m?.user_id || ''
+    if (profile?.user_id && uid === profile.user_id) return 'Tú'
+    const name = userNames[uid]
+    if (name) return name
+    return 'Usuario'
+  }
+
+  // Resolve and cache sender names from Supabase public.User by userid
+  async function resolveNamesForMessages(msgs) {
+    try {
+      const ids = Array.from(new Set((msgs || []).map((m) => m.user_id).filter((id) => id && id !== profile?.user_id)))
+      const missing = ids.filter((id) => !userNames[id])
+      if (missing.length === 0) return
+      const { data, error } = await supabase
+        .from('User')
+        .select('userid,nombre,apellido')
+        .in('userid', missing)
+      if (error) return
+      const map = {}
+      for (const row of data || []) {
+        const full = [row?.nombre, row?.apellido].filter(Boolean).join(' ')
+        if (row?.userid && full) map[row.userid] = full
+      }
+      if (Object.keys(map).length > 0) setUserNames((prev) => ({ ...prev, ...map }))
+    } catch {}
+  }
+
+  async function fetchNamesForUserIds(ids) {
+    const uniq = Array.from(new Set(ids.filter(Boolean)))
+    if (uniq.length === 0) return {}
+    const { data, error } = await supabase
+      .from('User')
+      .select('userid,nombre,apellido')
+      .in('userid', uniq)
+    if (error) return {}
+    const map = {}
+    for (const row of data || []) {
+      const full = [row?.nombre, row?.apellido].filter(Boolean).join(' ')
+      if (row?.userid && full) map[row.userid] = full
+    }
+    return map
+  }
+
+  async function loadParticipantsFromTrip() {
+    try {
+      const tripId = participantsTripId
+      if (!tripId) return
+      // Load from backend to avoid RLS/view issues and ensure full list
+      const res = await api.get('/trips/members/', { params: { trip_id: tripId } })
+      const ids = Array.isArray(res?.data?.members) ? res.data.members.map((x) => x.user_id) : []
+      if (ids.length === 0) {
+        alert('Este viaje no tiene participantes aún')
+        return
+      }
+      // 3) Resolve names
+      const map = await fetchNamesForUserIds(ids)
+      const names = ids.map((id) => (id === profile?.user_id ? (profile?.meta?.first_name && profile?.meta?.last_name ? `${profile.meta.first_name} ${profile.meta.last_name}` : 'Tú') : (map[id] || id)))
+      setParticipants(Array.from(new Set(names)))
+      setExpensesTripId(tripId)
+    } catch (e) {
+      alert('No se pudieron cargar participantes del viaje')
     }
   }
 
@@ -236,6 +345,7 @@ export default function Dashboard() {
                           <div style={{ display: 'grid', gap: 8 }}>
                             {messages.map((m) => (
                               <div key={m.id} className="glass-card" style={{ padding: 8 }}>
+                                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{getSenderLabel(m)}</div>
                                 <div style={{ fontSize: 13 }}>{m.content}</div>
                                 <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>{new Date(m.created_at).toLocaleString()}</div>
                               </div>
@@ -262,9 +372,20 @@ export default function Dashboard() {
 
             {section === 'trips' && (
               <section id="trips" className="glass-card" style={{ marginTop: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <h3 className="page-title" style={{ color: '#0284c7' }}>Viajes disponibles</h3>
-                  <Button onClick={() => setShowCreate((v) => !v)} className="btn sky">{showCreate ? 'Cancelar' : 'Crear viaje'}</Button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Button onClick={() => setShowCreate((v) => !v)} className="btn sky">{showCreate ? 'Cancelar' : 'Crear viaje'}</Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        const mine = (tripsBase || []).filter((t) => t.creatorId && t.creatorId === profile?.user_id)
+                        setTrips(mine)
+                      }}
+                    >
+                      Mis viajes
+                    </Button>
+                  </div>
                 </div>
                 <div style={{ marginTop: 12 }}>
                   {showCreate && (
@@ -283,8 +404,52 @@ export default function Dashboard() {
                           <input value={trip.destination} onChange={(e) => setTrip({ ...trip, destination: e.target.value })} placeholder="Ciudad de destino" />
                         </div>
                         <div className="field">
-                          <label>Fecha</label>
-                          <input type="date" value={trip.date} onChange={(e) => setTrip({ ...trip, date: e.target.value })} />
+                          <label>Desde</label>
+                          <input type="date" value={trip.startDate} onChange={(e) => setTrip({ ...trip, startDate: e.target.value })} />
+                        </div>
+                        <div className="field">
+                          <label>Hasta</label>
+                          <input type="date" value={trip.endDate} onChange={(e) => setTrip({ ...trip, endDate: e.target.value })} />
+                        </div>
+                        <div className="field">
+                          <label>Presupuesto mín.</label>
+                          <input type="number" inputMode="numeric" value={trip.budgetMin} onChange={(e) => setTrip({ ...trip, budgetMin: e.target.value })} placeholder="0" />
+                        </div>
+                        <div className="field">
+                          <label>Presupuesto máx.</label>
+                          <input type="number" inputMode="numeric" value={trip.budgetMax} onChange={(e) => setTrip({ ...trip, budgetMax: e.target.value })} placeholder="9999" />
+                        </div>
+                        <div className="field">
+                          <label>Estado</label>
+                          <select value={trip.status} onChange={(e) => setTrip({ ...trip, status: e.target.value })}>
+                            <option value="">-</option>
+                            <option value="active">Activo</option>
+                            <option value="upcoming">Próximo</option>
+                            <option value="completed">Completado</option>
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label>Habitación</label>
+                          <select value={trip.roomType} onChange={(e) => setTrip({ ...trip, roomType: e.target.value })}>
+                            <option value="">-</option>
+                            <option value="shared">Compartida</option>
+                            <option value="private">Privada</option>
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label>Temporada</label>
+                          <select value={trip.season} onChange={(e) => setTrip({ ...trip, season: e.target.value })}>
+                            <option value="">-</option>
+                            <option value="spring">Primavera</option>
+                            <option value="summer">Verano</option>
+                            <option value="autumn">Otoño</option>
+                            <option value="winter">Invierno</option>
+                            <option value="any">Cualquiera</option>
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label>País</label>
+                          <input value={trip.country} onChange={(e) => setTrip({ ...trip, country: e.target.value })} placeholder="Argentina" />
                         </div>
                       </div>
                       <div className="actions">
@@ -295,13 +460,20 @@ export default function Dashboard() {
                                 name: trip.name,
                                 origin: trip.origin,
                                 destination: trip.destination,
-                                date: trip.date,
+                                start_date: trip.startDate || null,
+                                end_date: trip.endDate || null,
+                                budget_min: trip.budgetMin !== '' ? Number(trip.budgetMin) : null,
+                                budget_max: trip.budgetMax !== '' ? Number(trip.budgetMax) : null,
+                                status: trip.status || null,
+                                room_type: trip.roomType || null,
+                                season: trip.season || null,
+                                country: trip.country || null,
                                 creator_id: profile?.user_id || null,
                               }
                               const { data } = await api.post('/trips/create/', payload)
                               alert('Viaje creado')
                               setShowCreate(false)
-                              setTrip({ name: '', origin: '', destination: '', date: '' })
+                              setTrip({ name: '', origin: '', destination: '', startDate: '', endDate: '', budgetMin: '', budgetMax: '', status: '', roomType: '', season: '', country: '' })
                               await loadTrips()
                             } catch (e) {
                               alert(e?.response?.data?.error || e?.message || 'No se pudo crear el viaje')
@@ -348,36 +520,178 @@ export default function Dashboard() {
             {section === 'expenses' && (
               <section id="expenses" className="glass-card" style={{ marginTop: 16 }}>
                 <h3 className="page-title" style={{ color: '#0284c7' }}>Gastos</h3>
-                <div style={{ marginTop: 12 }}>
-                  {budgetTrips.length === 0 && (
-                    <p className="muted" style={{ marginTop: 12 }}>No hay datos de gastos disponibles.</p>
-                  )}
-                  {budgetTrips.length > 0 && (
-                    <div style={{ display: 'grid', gap: 8 }}>
-                      {budgetTrips.map((t) => (
-                        <div key={t.id} className="glass-card" style={{ padding: 12 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div>
-                              <div style={{ fontWeight: 600 }}>{t.name || t.destination}</div>
-                              {(t.destination || t.origin) && (
-                                <div className="muted" style={{ fontSize: 12 }}>
-                                  {[t.origin, t.destination].filter(Boolean).join(' → ')}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontWeight: 700, color: '#3b82f6' }}>
-                                {t.budgetMin != null ? `$${t.budgetMin}` : ''}
-                                {t.budgetMin != null && t.budgetMax != null ? ' - ' : ''}
-                                {t.budgetMax != null ? `$${t.budgetMax}` : ''}
-                              </div>
-                              <div className="muted" style={{ fontSize: 12 }}>Presupuesto</div>
-                            </div>
-                          </div>
-                        </div>
+                <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
+                  <div className="glass-card" style={{ padding: 12 }}>
+                    <h4 style={{ fontWeight: 700, marginBottom: 8 }}>Participantes</h4>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                      <label style={{ fontSize: 14 }}>Origen:</label>
+                      <select value={participantsMode} onChange={(e) => setParticipantsMode(e.target.value)}>
+                        <option value="manual">Manual</option>
+                        <option value="trip">Desde viaje</option>
+                      </select>
+                      {participantsMode === 'trip' && (
+                        <>
+                          <select value={participantsTripId} onChange={(e) => setParticipantsTripId(e.target.value)}>
+                            <option value="">Seleccioná un viaje</option>
+                            {(tripsBase || []).map((t) => (
+                              <option key={t.id} value={t.id}>{t.name || t.destination}</option>
+                            ))}
+                          </select>
+                          <Button onClick={loadParticipantsFromTrip}>Cargar</Button>
+                        </>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {participants.map((p, idx) => (
+                        <span key={idx} className="btn" style={{ height: 32, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          {p}
+                          <button
+                            type="button"
+                            aria-label={`Quitar ${p}`}
+                            className="btn secondary"
+                            style={{ height: 24, padding: '0 8px' }}
+                            onClick={() => setParticipants((prev) => prev.filter((x) => x !== p))}
+                          >
+                            ×
+                          </button>
+                        </span>
                       ))}
                     </div>
-                  )}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                      <input id="new_participant" placeholder="Nombre" style={{ flex: 1, padding: 8, borderRadius: 8, border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.06)' }} />
+                      <Button onClick={() => {
+                        const input = document.getElementById('new_participant')
+                        const v = (input?.value || '').trim()
+                        if (!v) return
+                        setParticipants((prev) => Array.from(new Set([...prev, v])))
+                        if (input) input.value = ''
+                      }}>Agregar</Button>
+                    </div>
+                  </div>
+
+                  <div className="glass-card" style={{ padding: 12 }}>
+                    <h4 style={{ fontWeight: 700, marginBottom: 8 }}>Nuevo gasto</h4>
+                    <div className="form" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 8 }}>
+                      <div className="field">
+                        <label>Descripción</label>
+                        <input id="exp_desc" placeholder="Ej: Cena" />
+                      </div>
+                      <div className="field">
+                        <label>Monto</label>
+                        <input id="exp_amount" type="number" inputMode="numeric" placeholder="0" />
+                      </div>
+                      <div className="field">
+                        <label>Pagado por</label>
+                        <select id="exp_paid_by" defaultValue="">
+                          <option value="">Seleccioná</option>
+                          {participants.map((p) => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Dividir entre</label>
+                        <select id="exp_split_between" defaultValue="all">
+                          <option value="all">Todos</option>
+                          <option value="custom">Personalizado</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="actions">
+                      <Button onClick={() => {
+                        const desc = document.getElementById('exp_desc')?.value || ''
+                        const amount = Number(document.getElementById('exp_amount')?.value || '0')
+                        const paidBy = document.getElementById('exp_paid_by')?.value || ''
+                        const splitBetween = document.getElementById('exp_split_between')?.value || 'all'
+                        if (!desc.trim() || !amount || !paidBy) return alert('Completá descripción, monto y pagador')
+                        const people = splitBetween === 'all' ? participants : participants // TODO: custom picker
+                        if (!people || people.length === 0) return alert('Agregá participantes')
+                        setExpenses((prev) => [...prev, { id: Date.now(), desc, amount, paidBy, between: people }])
+                        try { document.getElementById('exp_desc').value = '' } catch {}
+                        try { document.getElementById('exp_amount').value = '' } catch {}
+                        try { document.getElementById('exp_paid_by').value = '' } catch {}
+                        try { document.getElementById('exp_split_between').value = 'all' } catch {}
+                      }}>Agregar gasto</Button>
+                    </div>
+                  </div>
+
+                  <div className="glass-card" style={{ padding: 12 }}>
+                    <h4 style={{ fontWeight: 700, marginBottom: 8 }}>Gastos</h4>
+                    {(expenses || []).length === 0 && <p className="muted">Sin gastos aún</p>}
+                    {(expenses || []).length > 0 && (
+                      <div style={{ display: 'grid', gap: 8 }}>
+                        {expenses.map((e) => (
+                          <div key={e.id} className="glass-card" style={{ padding: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                              <div style={{ fontWeight: 600 }}>{e.desc}</div>
+                              <div className="muted" style={{ fontSize: 12 }}>Pagó {e.paidBy} · dividido entre {e.between.length}</div>
+                            </div>
+                            <div style={{ fontWeight: 700 }}>${e.amount}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="glass-card" style={{ padding: 12 }}>
+                    <h4 style={{ fontWeight: 700, marginBottom: 8 }}>Balances</h4>
+                    {(() => {
+                      const balances = {}
+                      for (const p of participants) balances[p] = 0
+                      for (const e of expenses) {
+                        const share = e.amount / (e.between.length || 1)
+                        for (const p of e.between) balances[p] -= share
+                        balances[e.paidBy] = (balances[e.paidBy] || 0) + e.amount
+                      }
+                      const entries = Object.entries(balances)
+                      if (entries.length === 0) return <p className="muted">Sin balances</p>
+                      return (
+                        <div style={{ display: 'grid', gap: 4 }}>
+                          {entries.map(([p, v]) => (
+                            <div key={p} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>{p}</span>
+                              <span style={{ color: v >= 0 ? '#22c55e' : '#ef4444' }}>{v >= 0 ? '+' : ''}${v.toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })()}
+                  </div>
+
+                  <div className="glass-card" style={{ padding: 12 }}>
+                    <h4 style={{ fontWeight: 700, marginBottom: 8 }}>Sugerencias de saldos</h4>
+                    {(() => {
+                      const balances = {}
+                      for (const p of participants) balances[p] = 0
+                      for (const e of expenses) {
+                        const share = e.amount / (e.between.length || 1)
+                        for (const p of e.between) balances[p] -= share
+                        balances[e.paidBy] = (balances[e.paidBy] || 0) + e.amount
+                      }
+                      const debtors = Object.entries(balances).filter(([, v]) => v < 0).map(([p, v]) => ({ p, v }))
+                      const creditors = Object.entries(balances).filter(([, v]) => v > 0).map(([p, v]) => ({ p, v }))
+                      debtors.sort((a, b) => a.v - b.v)
+                      creditors.sort((a, b) => b.v - a.v)
+                      const transfers = []
+                      let i = 0, j = 0
+                      while (i < debtors.length && j < creditors.length) {
+                        const need = -debtors[i].v
+                        const avail = creditors[j].v
+                        const pay = Math.min(need, avail)
+                        if (pay > 0.005) transfers.push(`${debtors[i].p} → ${creditors[j].p}: $${pay.toFixed(2)}`)
+                        debtors[i].v += pay
+                        creditors[j].v -= pay
+                        if (Math.abs(debtors[i].v) < 0.005) i++
+                        if (Math.abs(creditors[j].v) < 0.005) j++
+                      }
+                      if (transfers.length === 0) return <p className="muted">No hay deudas pendientes</p>
+                      return (
+                        <div style={{ display: 'grid', gap: 4 }}>
+                          {transfers.map((t, idx) => (
+                            <div key={idx}>{t}</div>
+                          ))}
+                        </div>
+                      )
+                    })()}
+                  </div>
                 </div>
               </section>
             )}

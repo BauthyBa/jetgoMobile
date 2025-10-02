@@ -21,6 +21,8 @@ export function normalizeTrip(raw) {
   const roomType = raw.room_type || null
   const maxParticipants = raw.max_participants ?? null
   const currentParticipants = raw.current_participants ?? null
+  const creatorId = raw.creator_id || null
+  const country = raw.country || null
 
   return {
     id: raw.id,
@@ -40,6 +42,8 @@ export function normalizeTrip(raw) {
     roomType,
     maxParticipants,
     currentParticipants,
+    creatorId,
+    country,
     raw,
   }
 }
