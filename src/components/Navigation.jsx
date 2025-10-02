@@ -1,7 +1,18 @@
 import { Button } from '@/components/ui/button'
 import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { getSession, supabase } from '@/services/supabase'
 
 export default function Navigation() {
+  const [loggedIn, setLoggedIn] = useState(false)
+  useEffect(() => {
+    let mounted = true
+    getSession().then((s) => { if (mounted) setLoggedIn(!!s?.user) })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (mounted) setLoggedIn(!!session?.user)
+    })
+    return () => { mounted = false; subscription.unsubscribe() }
+  }, [])
   return (
     <nav className="fixed top-0 w-full z-50 glass-nav">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -16,8 +27,14 @@ export default function Navigation() {
             <a href="#testimonios" className="text-foreground hover:text-primary transition-colors">Testimonios</a>
           </div>
           <div className="flex items-center space-x-4">
-            <Link to="/login"><Button variant="ghost">Iniciar sesión</Button></Link>
-            <Link to="/signup"><Button className="bg-primary text-primary-foreground hover:bg-primary/90">Registrarse</Button></Link>
+            {loggedIn ? (
+              <Link to="/dashboard"><Button className="bg-primary text-primary-foreground hover:bg-primary/90">Ir al dashboard</Button></Link>
+            ) : (
+              <>
+                <Link to="/login"><Button variant="ghost">Iniciar sesión</Button></Link>
+                <Link to="/signup"><Button className="bg-primary text-primary-foreground hover:bg-primary/90">Registrarse</Button></Link>
+              </>
+            )}
           </div>
         </div>
       </div>

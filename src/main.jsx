@@ -5,9 +5,9 @@ import App from './App.jsx'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Register from './pages/Register.jsx'
 import Login from './pages/Login.jsx'
+import Signup from './pages/Signup.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import VerifyDni from './pages/VerifyDni.jsx'
-import Signup from './pages/Signup.jsx'
 import Layout from './components/Layout.jsx'
 
 const router = createBrowserRouter([

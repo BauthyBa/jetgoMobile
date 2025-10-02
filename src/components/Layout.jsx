@@ -16,7 +16,7 @@ export default function Layout() {
     return () => { mounted = false; subscription.unsubscribe() }
   }, [])
   const isRoot = location.pathname === '/'
-  const hideHeaderOn = ['/login', '/signup', '/register', '/verify-dni', '/dashboard']
+  const hideHeaderOn = ['/verify-dni', '/dashboard']
   const hideHeader = hideHeaderOn.some((p) => location.pathname.startsWith(p))
   return (
     <div>
@@ -27,12 +27,7 @@ export default function Layout() {
               <Link to="/#como-funciona">Cómo funciona</Link>
               <Link to="/#beneficios">Beneficios</Link>
               <Link to="/#testimonios">Testimonios</Link>
-              {!loggedIn && (
-                <>
-                  <Link to="/login">Iniciar sesión</Link>
-                  <Link to="/signup">Registrarse</Link>
-                </>
-              )}
+              {!loggedIn && null}
             </nav>
             <Link to="/" className="brand" aria-label="JetGo">
               <img src="/jetgo.svg" alt="" width="20" height="20" style={{ verticalAlign: 'middle', marginRight: 8 }} />
@@ -42,7 +37,7 @@ export default function Layout() {
         </header>
       )}
       {isRoot && <Navigation />}
-      <main className={isRoot ? "" : "container"}>
+      <main className={isRoot || hideHeader ? "" : "container"}>
         <Outlet />
       </main>
     </div>
