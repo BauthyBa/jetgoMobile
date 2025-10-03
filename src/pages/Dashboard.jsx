@@ -887,9 +887,15 @@ export default function Dashboard() {
                   {chatMembers.map((m) => (
                     <button
                       key={m.user_id}
+                      type="button"
                       className="glass-card"
                       style={{ padding: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}
-                      onClick={() => { try { window.location.href = `/u/${m.user_id}` } catch {} }}
+                      onClick={() => {
+                        try {
+                          if (!m?.user_id) return
+                          navigate(`/u/${m.user_id}`)
+                        } catch {}
+                      }}
                     >
                       <div style={{ fontWeight: 600 }}>{m.name || m.user_id}</div>
                       <div className="muted" style={{ fontSize: 12 }}>{m.user_id}</div>
