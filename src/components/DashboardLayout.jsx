@@ -15,13 +15,13 @@ export default function DashboardLayout({ children }) {
     return currentHash === (item.hash || '')
   }
   return (
-    <div className="min-h-screen" style={{ display: 'flex' }}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white" style={{ display: 'flex' }}>
       <aside className="glass-aside" style={{ width: 240, padding: 16 }}>
         <GlassCard>
           <div style={{ display: 'grid', gap: 12 }}>
             <div>
-              <h1 style={{ fontSize: 20, fontWeight: 700, background: 'linear-gradient(135deg, #3b82f6, #22c55e)', WebkitBackgroundClip: 'text', color: 'transparent' }}>JetGo</h1>
-              <p className="muted" style={{ fontSize: 12 }}>Viaja, comparte, ahorra</p>
+              <h1 style={{ fontSize: 20, fontWeight: 800, background: 'linear-gradient(135deg, #3b82f6, #22c55e)', WebkitBackgroundClip: 'text', color: 'transparent' }}>JetGo</h1>
+              <p className="muted" style={{ fontSize: 12, color: '#94a3b8' }}>Viaja, comparte, ahorra</p>
             </div>
             <nav style={{ display: 'grid', gap: 8 }}>
               {nav.map((n) => (
@@ -40,7 +40,7 @@ export default function DashboardLayout({ children }) {
                 </Link>
               ))}
             </nav>
-            <div className="muted" style={{ fontSize: 12 }}>Versión 1.0.0</div>
+            <div className="muted" style={{ fontSize: 12, color: '#94a3b8' }}>Versión 1.0.0</div>
           </div>
         </GlassCard>
       </aside>

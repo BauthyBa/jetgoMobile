@@ -13,6 +13,7 @@ import { upsertProfileToBackend } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import { useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export default function Dashboard() {
   const [profile, setProfile] = useState(null)
@@ -307,7 +308,7 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="p-8" style={{ display: 'grid', gap: 16 }}>
+      <div className="p-6 sm:p-8 text-white" style={{ display: 'grid', gap: 16 }}>
         {error && <pre className="error">{error}</pre>}
         {!error && !profile && <p className="muted">Cargando…</p>}
         {profile && (
@@ -351,7 +352,7 @@ export default function Dashboard() {
               <section id="chats" style={{ marginTop: 16 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 16 }}>
                   <div className="glass-card" style={{ padding: 12 }}>
-                    <h3 className="page-title" style={{ color: '#0284c7', marginBottom: 8 }}>Chats</h3>
+                    <h3 className="page-title" style={{ color: '#60a5fa', marginBottom: 8 }}>Chats</h3>
                     <ChatsCard rooms={rooms} onOpen={openRoom} />
                   </div>
                   <div className="glass-card" style={{ padding: 12, minHeight: 360, display: 'flex', flexDirection: 'column' }}>
@@ -373,12 +374,11 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                          <input
+                          <Input
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
                             placeholder="Escribí un mensaje..."
-                            className="field"
-                            style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.06)' }}
+                            className="flex-1 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
                           />
                           <Button onClick={handleSend}>Enviar</Button>
                         </div>
@@ -392,7 +392,7 @@ export default function Dashboard() {
             {section === 'trips' && (
               <section id="trips" className="glass-card" style={{ marginTop: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <h3 className="page-title" style={{ color: '#0284c7' }}>Viajes disponibles</h3>
+                  <h3 className="page-title" style={{ color: '#60a5fa' }}>Viajes disponibles</h3>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <Button onClick={() => setShowCreate((v) => !v)} className="btn sky">{showCreate ? 'Cancelar' : 'Crear viaje'}</Button>
                     <Button
@@ -538,7 +538,7 @@ export default function Dashboard() {
 
             {section === 'expenses' && (
               <section id="expenses" className="glass-card" style={{ marginTop: 16 }}>
-                <h3 className="page-title" style={{ color: '#0284c7' }}>Gastos</h3>
+                <h3 className="page-title" style={{ color: '#60a5fa' }}>Gastos</h3>
                 <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
                   <div className="glass-card" style={{ padding: 12 }}>
                     <h4 style={{ fontWeight: 700, marginBottom: 8 }}>Participantes</h4>
@@ -577,7 +577,7 @@ export default function Dashboard() {
                       ))}
                     </div>
                     <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                      <input id="new_participant" placeholder="Nombre" style={{ flex: 1, padding: 8, borderRadius: 8, border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.06)' }} />
+                      <Input id="new_participant" placeholder="Nombre" className="flex-1 bg-slate-700 border-slate-600 text-white placeholder-slate-400" />
                       <Button onClick={() => {
                         const input = document.getElementById('new_participant')
                         const v = (input?.value || '').trim()
