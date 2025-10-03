@@ -4,6 +4,7 @@ import Benefits from '@/components/Benefits'
 import HowItWorks from '@/components/HowItWorks'
 import Testimonials from '@/components/Testimonials'
 import CTA from '@/components/CTA'
+import TripadvisorShowcase from '@/components/TripadvisorShowcase'
 
 export default function Landing() {
   return (
@@ -12,6 +13,7 @@ export default function Landing() {
       <HeroSection />
       <HowItWorks />
       <Benefits />
+      <TripadvisorShowcase />
       <Testimonials />
       <CTA />
     </div>
