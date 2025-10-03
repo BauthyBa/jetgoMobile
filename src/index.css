@@ -126,21 +126,10 @@ h1 {
 .overlay-box { background: rgba(24, 28, 36, 0.95); border: 1px solid #2a2f3a; border-radius: 12px; padding: 24px 28px; display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: 260px; }
 .loader { width: 48px; height: 48px; border: 4px solid rgba(255, 255, 255, 0.2); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
 /* Liquid glass utilities */
 @layer utilities {
   .glass-card {
     @apply bg-white/10 backdrop-blur-md border border-white/20 shadow-soft rounded-2xl;
-  }
-  .glass-aside {
-    background: linear-gradient(
-      135deg,
-      rgba(59,130,246,0.10) 0%,
-      rgba(34,197,94,0.08) 100%
-    );
-    backdrop-filter: blur(12px) saturate(140%);
-    -webkit-backdrop-filter: blur(12px) saturate(140%);
-    border-right: 1px solid rgba(59,130,246,0.18);
   }
   .hover-glow:hover {
     box-shadow: 0 0 0 1px rgba(59,130,246,0.3), 0 12px 32px rgba(0,0,0,0.25);
@@ -161,4 +150,142 @@ h1 {
     border-color: rgba(155, 235, 255, 0.55);
     box-shadow: 0 8px 24px rgba(0, 164, 224, 0.45), inset 0 0 0 1px rgba(255,255,255,0.06);
   }
+}
+
+/* VerifyDni embedded form: match login/signup styles exactly */
+.embedded-register .muted { 
+  color: #94a3b8; 
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.embedded-register .field { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.embedded-register .field label { 
+  color: #cbd5e1; /* slate-300 */
+  font-weight: 500;
+  font-size: 14px;
+  display: block;
+}
+
+.embedded-register .field input,
+.embedded-register .field select {
+  width: 100%;
+  background-color: #334155; /* slate-700 */
+  border: 1px solid #475569; /* slate-600 */
+  color: #ffffff;
+  border-radius: 0.5rem; /* rounded-lg */
+  padding: 0.75rem 1rem; /* py-3 px-4 */
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.embedded-register .field input::placeholder { 
+  color: #94a3b8; /* slate-400 */
+}
+
+.embedded-register .field input:focus,
+.embedded-register .field select:focus {
+  outline: none;
+  border-color: #3b82f6; /* blue-500 */
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  border-color: transparent;
+}
+
+.embedded-register .field input[type="file"] {
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.embedded-register .actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.embedded-register .btn {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+  cursor: pointer;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.embedded-register .btn:not(.secondary) {
+  background: linear-gradient(to right, #2563eb, #3b82f6); /* blue-600 to blue-500 */
+  color: white;
+  border: none;
+  box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.5);
+}
+
+.embedded-register .btn:not(.secondary):hover {
+  background: linear-gradient(to right, #3b82f6, #60a5fa); /* blue-500 to blue-400 */
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
+}
+
+.embedded-register .btn.secondary {
+  background-color: #334155; /* slate-700 */
+  color: white;
+  border: 1px solid #475569; /* slate-600 */
+}
+
+.embedded-register .btn.secondary:hover {
+  background-color: #475569; /* slate-600 */
+}
+
+.embedded-register .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.embedded-register .form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.embedded-register .preview {
+  margin-top: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #475569;
+  border-radius: 0.5rem;
+  padding: 8px;
+  background-color: #1e293b;
+}
+
+.embedded-register .preview img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 0.25rem;
+}
+
+.embedded-register .error {
+  color: #fca5a5; /* red-300 */
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  padding: 12px;
+  border-radius: 0.5rem;
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.embedded-register .success {
+  color: #86efac; /* green-300 */
+  background-color: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.5);
+  padding: 12px;
+  border-radius: 0.5rem;
+  margin-top: 16px;
+  font-size: 14px;
 }
