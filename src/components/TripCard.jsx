@@ -11,7 +11,7 @@ export default function TripCard({ trip, onJoin, joining, onEdit, canEdit }) {
     : null
 
   return (
-    <div className="card glass-card" style={{ padding: 16, display: 'grid', gap: 12, minHeight: 260 }}>
+    <div className="card glass-card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, height: 320 }}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         {trip.imageUrl && (
           <img src={trip.imageUrl} alt={trip.name} style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover' }} />
@@ -39,7 +39,7 @@ export default function TripCard({ trip, onJoin, joining, onEdit, canEdit }) {
           ))}
         </div>
       )}
-      <div className="actions" style={{ marginTop: 8, justifyContent: 'space-between' }}>
+      <div className="actions" style={{ marginTop: 'auto', justifyContent: 'space-between' }}>
         {canEdit && (
           <button className="btn secondary" type="button" onClick={onEdit}>Editar</button>
         )}

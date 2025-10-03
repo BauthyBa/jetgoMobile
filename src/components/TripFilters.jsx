@@ -96,7 +96,7 @@ export default function TripFilters({ baseTrips, onFilter }) {
 				</div>
 				<div className="field">
 					<label>Estado</label>
-					<select value={status} onChange={(e) => setStatus(e.target.value)}>
+					<select value={status} onChange={(e) => setStatus(e.target.value)} style={{ color: '#111827', background: '#ffffff' }}>
 						<option value="">Todos</option>
 						{statuses.map((s) => (
 							<option key={s} value={s}>{s}</option>
@@ -123,7 +123,7 @@ export default function TripFilters({ baseTrips, onFilter }) {
 
 				<div className="field">
 					<label>Temporada</label>
-					<select value={season} onChange={(e) => setSeason(e.target.value)}>
+					<select value={season} onChange={(e) => setSeason(e.target.value)} style={{ color: '#111827', background: '#ffffff' }}>
 						<option value="">Todas</option>
 						<option value="spring">Primavera</option>
 						<option value="summer">Verano</option>
@@ -134,7 +134,7 @@ export default function TripFilters({ baseTrips, onFilter }) {
 				</div>
 				<div className="field">
 					<label>Habitación</label>
-					<select value={roomType} onChange={(e) => setRoomType(e.target.value)}>
+					<select value={roomType} onChange={(e) => setRoomType(e.target.value)} style={{ color: '#111827', background: '#ffffff' }}>
 						<option value="">Todas</option>
 						<option value="shared">Compartida</option>
 						<option value="private">Privada</option>
@@ -143,7 +143,7 @@ export default function TripFilters({ baseTrips, onFilter }) {
 				</div>
 				<div className="field">
 					<label>País</label>
-					<select value={country} onChange={(e) => setCountry(e.target.value)}>
+					<select value={country} onChange={(e) => setCountry(e.target.value)} style={{ color: '#111827', background: '#ffffff' }}>
 						<option value="">Todos</option>
 						{countries.map((c) => (
 							<option key={c} value={c}>{c}</option>
@@ -153,7 +153,19 @@ export default function TripFilters({ baseTrips, onFilter }) {
 			</div>
 			<div className="actions" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
 				<button className="btn secondary" type="button" onClick={clearAll}>Limpiar</button>
-				<button className="btn" type="button" onClick={applyFilters}>Buscar</button>
+				<button
+					className="btn"
+					type="button"
+					onClick={applyFilters}
+					style={{
+						background: 'linear-gradient(90deg, #22c55e, #16a34a)',
+						border: 'none',
+						color: '#ffffff',
+						boxShadow: '0 8px 24px rgba(22,163,74,0.45)'
+					}}
+				>
+					Buscar
+				</button>
 			</div>
 		</div>
 	)

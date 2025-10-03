@@ -789,10 +789,30 @@ export default function Dashboard() {
 
       {filtersOpen && (
         <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="filtersTitle">
-          <div className="overlay-box" style={{ maxWidth: 980, width: '95%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <h3 id="filtersTitle" className="page-title" style={{ margin: 0 }}>Filtros</h3>
-              <Button variant="secondary" onClick={() => setFiltersOpen(false)}>Cerrar</Button>
+          <div className="overlay-box" style={{ maxWidth: 980, width: '95%', position: 'relative' }}>
+            <button
+              aria-label="Cerrar"
+              onClick={() => setFiltersOpen(false)}
+              style={{
+                position: 'absolute',
+                top: -14,
+                right: -14,
+                width: 36,
+                height: 36,
+                borderRadius: 9999,
+                background: '#0f172a',
+                border: '2px solid #ef4444',
+                color: '#ef4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(239,68,68,0.45)'
+              }}
+            >
+              ✕
+            </button>
+            <div style={{ display: 'grid', placeItems: 'center' }}>
+              <h3 id="filtersTitle" className="page-title" style={{ margin: 0, textAlign: 'center' }}>Filtros</h3>
             </div>
             <div style={{ marginTop: 8 }}>
               <TripFilters baseTrips={tripsBase} onFilter={(f) => { setTrips(f); setVisibleCount(6) }} />
