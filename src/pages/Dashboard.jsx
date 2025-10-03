@@ -36,6 +36,9 @@ export default function Dashboard() {
   const [tab, setTab] = useState('chats')
   const [tripsBase, setTripsBase] = useState([])
   const [trips, setTrips] = useState([])
+  const [visibleCount, setVisibleCount] = useState(6)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [editTripModal, setEditTripModal] = useState({ open: false, data: null })
   const [joiningId, setJoiningId] = useState(null)
   const [activeRoomId, setActiveRoomId] = useState(null)
   const [messages, setMessages] = useState([])
@@ -48,6 +51,7 @@ export default function Dashboard() {
   const budgetTrips = trips.filter((t) => t && (t.budgetMin != null || t.budgetMax != null))
   const section = (location.hash || '#inicio').replace('#', '')
   const [showCreate, setShowCreate] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   // Expenses state (local, per user)
   const [expensesTripId, setExpensesTripId] = useState('')
   const storageKey = (suffix) => `exp_${suffix}_${expensesTripId || 'global'}`
@@ -409,7 +413,7 @@ export default function Dashboard() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                   <h3 className="page-title" style={{ color: '#60a5fa' }}>Viajes disponibles</h3>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <Button onClick={() => setShowCreate((v) => !v)} className="btn sky">{showCreate ? 'Cancelar' : 'Crear viaje'}</Button>
+                    <Button onClick={() => setShowCreateModal(true)} className="btn sky">Crear viaje</Button>
                     <Button
                       variant="secondary"
                       onClick={() => {
@@ -422,117 +426,23 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div style={{ marginTop: 12 }}>
-                  {showCreate && (
-                    <div className="glass-card" style={{ padding: 12, marginBottom: 12 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                        <div className="field">
-                          <label>Nombre</label>
-                          <input value={trip.name} onChange={(e) => setTrip({ ...trip, name: e.target.value })} placeholder="Ej: Bariloche 2025" />
-                        </div>
-                        <div className="field">
-                          <label>Origen</label>
-                          <input value={trip.origin} onChange={(e) => setTrip({ ...trip, origin: e.target.value })} placeholder="Ciudad de origen" />
-                        </div>
-                        <div className="field">
-                          <label>Destino</label>
-                          <input value={trip.destination} onChange={(e) => setTrip({ ...trip, destination: e.target.value })} placeholder="Ciudad de destino" />
-                        </div>
-                        <div className="field">
-                          <label>Desde</label>
-                          <input type="date" value={trip.startDate} onChange={(e) => setTrip({ ...trip, startDate: e.target.value })} />
-                        </div>
-                        <div className="field">
-                          <label>Hasta</label>
-                          <input type="date" value={trip.endDate} onChange={(e) => setTrip({ ...trip, endDate: e.target.value })} />
-                        </div>
-                        <div className="field">
-                          <label>Presupuesto mín.</label>
-                          <input type="number" inputMode="numeric" value={trip.budgetMin} onChange={(e) => setTrip({ ...trip, budgetMin: e.target.value })} placeholder="0" />
-                        </div>
-                        <div className="field">
-                          <label>Presupuesto máx.</label>
-                          <input type="number" inputMode="numeric" value={trip.budgetMax} onChange={(e) => setTrip({ ...trip, budgetMax: e.target.value })} placeholder="9999" />
-                        </div>
-                        <div className="field">
-                          <label>Estado</label>
-                          <select value={trip.status} onChange={(e) => setTrip({ ...trip, status: e.target.value })}>
-                            <option value="">-</option>
-                            <option value="active">Activo</option>
-                            <option value="upcoming">Próximo</option>
-                            <option value="completed">Completado</option>
-                          </select>
-                        </div>
-                        <div className="field">
-                          <label>Habitación</label>
-                          <select value={trip.roomType} onChange={(e) => setTrip({ ...trip, roomType: e.target.value })}>
-                            <option value="">-</option>
-                            <option value="shared">Compartida</option>
-                            <option value="private">Privada</option>
-                          </select>
-                        </div>
-                        <div className="field">
-                          <label>Temporada</label>
-                          <select value={trip.season} onChange={(e) => setTrip({ ...trip, season: e.target.value })}>
-                            <option value="">-</option>
-                            <option value="spring">Primavera</option>
-                            <option value="summer">Verano</option>
-                            <option value="autumn">Otoño</option>
-                            <option value="winter">Invierno</option>
-                            <option value="any">Cualquiera</option>
-                          </select>
-                        </div>
-                        <div className="field">
-                          <label>País</label>
-                          <input value={trip.country} onChange={(e) => setTrip({ ...trip, country: e.target.value })} placeholder="Argentina" />
-                        </div>
-                      </div>
-                      <div className="actions">
-                        <Button
-                          onClick={async () => {
-                            try {
-                              const payload = {
-                                name: trip.name,
-                                origin: trip.origin,
-                                destination: trip.destination,
-                                start_date: trip.startDate || null,
-                                end_date: trip.endDate || null,
-                                budget_min: trip.budgetMin !== '' ? Number(trip.budgetMin) : null,
-                                budget_max: trip.budgetMax !== '' ? Number(trip.budgetMax) : null,
-                                status: trip.status || null,
-                                room_type: trip.roomType || null,
-                                season: trip.season || null,
-                                country: trip.country || null,
-                                creator_id: profile?.user_id || null,
-                              }
-                              const { data } = await api.post('/trips/create/', payload)
-                              alert('Viaje creado')
-                              setShowCreate(false)
-                              setTrip({ name: '', origin: '', destination: '', startDate: '', endDate: '', budgetMin: '', budgetMax: '', status: '', roomType: '', season: '', country: '' })
-                              await loadTrips()
-                            } catch (e) {
-                              alert(e?.response?.data?.error || e?.message || 'No se pudo crear el viaje')
-                            }
-                          }}
-                        >
-                          Guardar
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  <TripFilters baseTrips={tripsBase} onFilter={setTrips} />
-                  {trips.length === 0 && <p className="muted" style={{ marginTop: 12 }}>No hay viajes que coincidan.</p>}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <div style={{ fontSize: 14 }} className="muted">Usá filtros para encontrar tu viaje ideal</div>
+                    <Button variant="secondary" onClick={() => setFiltersOpen(true)}>Filtros</Button>
+                  </div>
+                  {trips.length === 0 && <p className="muted" style={{ marginTop: 12, textAlign: 'center' }}>No hay viajes que coincidan.</p>}
                   {trips.length > 0 && (
                     <div style={{ marginTop: 12 }}>
                       <TripGrid
-                        trips={trips}
+                        trips={trips.slice(0, visibleCount)}
                         joiningId={joiningId}
                         onJoin={async (t) => {
                           try {
                             if (!profile?.user_id) throw new Error('Sin usuario')
                             setJoiningId(t.id)
-                        const data = await joinTrip(t.id, profile.user_id)
-                        if (data?.ok !== false) {
-                          setJoinDialog({ open: true, title: '¡Te uniste al viaje!', message: 'Podés ver el chat del grupo o seguir explorando.' })
+                            const data = await joinTrip(t.id, profile.user_id)
+                            if (data?.ok !== false) {
+                              setJoinDialog({ open: true, title: '¡Te uniste al viaje!', message: 'Podés ver el chat del grupo o seguir explorando.' })
                               const r = await listRoomsForUser(profile.user_id)
                               setRooms(r)
                             } else {
@@ -544,7 +454,14 @@ export default function Dashboard() {
                             setJoiningId(null)
                           }
                         }}
+                        onEdit={(t) => { setEditTripModal({ open: true, data: t }) }}
+                        canEdit={(t) => t.creatorId && t.creatorId === profile?.user_id}
                       />
+                      {visibleCount < trips.length && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+                          <Button onClick={() => setVisibleCount((v) => v + 6)}>Cargar más</Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -767,6 +684,223 @@ export default function Dashboard() {
           </>
         )}
       </div>
+
+      {showCreateModal && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="createTripTitle">
+          <div className="overlay-box" style={{ maxWidth: 840, width: '95%' }}>
+            <h3 id="createTripTitle" className="page-title" style={{ margin: 0 }}>Crear viaje</h3>
+            <div className="glass-card" style={{ padding: 12, marginTop: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="field">
+                  <label>Nombre</label>
+                  <input value={trip.name} onChange={(e) => setTrip({ ...trip, name: e.target.value })} placeholder="Ej: Bariloche 2025" />
+                </div>
+                <div className="field">
+                  <label>Origen</label>
+                  <input value={trip.origin} onChange={(e) => setTrip({ ...trip, origin: e.target.value })} placeholder="Ciudad de origen" />
+                </div>
+                <div className="field">
+                  <label>Destino</label>
+                  <input value={trip.destination} onChange={(e) => setTrip({ ...trip, destination: e.target.value })} placeholder="Ciudad de destino" />
+                </div>
+                <div className="field">
+                  <label>Desde</label>
+                  <input type="date" value={trip.startDate} onChange={(e) => setTrip({ ...trip, startDate: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label>Hasta</label>
+                  <input type="date" value={trip.endDate} onChange={(e) => setTrip({ ...trip, endDate: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label>Presupuesto mín.</label>
+                  <input type="number" inputMode="numeric" value={trip.budgetMin} onChange={(e) => setTrip({ ...trip, budgetMin: e.target.value })} placeholder="0" />
+                </div>
+                <div className="field">
+                  <label>Presupuesto máx.</label>
+                  <input type="number" inputMode="numeric" value={trip.budgetMax} onChange={(e) => setTrip({ ...trip, budgetMax: e.target.value })} placeholder="9999" />
+                </div>
+                <div className="field">
+                  <label>Estado</label>
+                  <select value={trip.status} onChange={(e) => setTrip({ ...trip, status: e.target.value })}>
+                    <option value="">-</option>
+                    <option value="active">Activo</option>
+                    <option value="upcoming">Próximo</option>
+                    <option value="completed">Completado</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Habitación</label>
+                  <select value={trip.roomType} onChange={(e) => setTrip({ ...trip, roomType: e.target.value })}>
+                    <option value="">-</option>
+                    <option value="shared">Compartida</option>
+                    <option value="private">Privada</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Temporada</label>
+                  <select value={trip.season} onChange={(e) => setTrip({ ...trip, season: e.target.value })}>
+                    <option value="">-</option>
+                    <option value="spring">Primavera</option>
+                    <option value="summer">Verano</option>
+                    <option value="autumn">Otoño</option>
+                    <option value="winter">Invierno</option>
+                    <option value="any">Cualquiera</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>País</label>
+                  <input value={trip.country} onChange={(e) => setTrip({ ...trip, country: e.target.value })} placeholder="Argentina" />
+                </div>
+              </div>
+              <div className="actions" style={{ justifyContent: 'flex-end' }}>
+                <Button className="btn secondary" variant="secondary" onClick={() => setShowCreateModal(false)}>Cancelar</Button>
+                <Button
+                  onClick={async () => {
+                    try {
+                      const payload = {
+                        name: trip.name,
+                        origin: trip.origin,
+                        destination: trip.destination,
+                        start_date: trip.startDate || null,
+                        end_date: trip.endDate || null,
+                        budget_min: trip.budgetMin !== '' ? Number(trip.budgetMin) : null,
+                        budget_max: trip.budgetMax !== '' ? Number(trip.budgetMax) : null,
+                        status: trip.status || null,
+                        room_type: trip.roomType || null,
+                        season: trip.season || null,
+                        country: trip.country || null,
+                        creator_id: profile?.user_id || null,
+                      }
+                      const { data } = await api.post('/trips/create/', payload)
+                      setShowCreateModal(false)
+                      setTrip({ name: '', origin: '', destination: '', startDate: '', endDate: '', budgetMin: '', budgetMax: '', status: '', roomType: '', season: '', country: '' })
+                      await loadTrips()
+                      setJoinDialog({ open: true, title: 'Viaje creado', message: 'Tu viaje fue creado con éxito.' })
+                    } catch (e) {
+                      alert(e?.response?.data?.error || e?.message || 'No se pudo crear el viaje')
+                    }
+                  }}
+                >
+                  Guardar
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {filtersOpen && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="filtersTitle">
+          <div className="overlay-box" style={{ maxWidth: 980, width: '95%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <h3 id="filtersTitle" className="page-title" style={{ margin: 0 }}>Filtros</h3>
+              <Button variant="secondary" onClick={() => setFiltersOpen(false)}>Cerrar</Button>
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <TripFilters baseTrips={tripsBase} onFilter={(f) => { setTrips(f); setVisibleCount(6) }} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editTripModal.open && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="editTripTitle">
+          <div className="overlay-box" style={{ maxWidth: 840, width: '95%' }}>
+            <h3 id="editTripTitle" className="page-title" style={{ margin: 0 }}>Editar viaje</h3>
+            <div className="glass-card" style={{ padding: 12, marginTop: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="field">
+                  <label>Nombre</label>
+                  <input defaultValue={editTripModal.data?.name} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, name: e.target.value } }))} />
+                </div>
+                <div className="field">
+                  <label>Origen</label>
+                  <input defaultValue={editTripModal.data?.origin} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, origin: e.target.value } }))} />
+                </div>
+                <div className="field">
+                  <label>Destino</label>
+                  <input defaultValue={editTripModal.data?.destination} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, destination: e.target.value } }))} />
+                </div>
+                <div className="field">
+                  <label>Desde</label>
+                  <input type="date" defaultValue={editTripModal.data?.startDate} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, startDate: e.target.value } }))} />
+                </div>
+                <div className="field">
+                  <label>Hasta</label>
+                  <input type="date" defaultValue={editTripModal.data?.endDate} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, endDate: e.target.value } }))} />
+                </div>
+                <div className="field">
+                  <label>Presupuesto mín.</label>
+                  <input type="number" inputMode="numeric" defaultValue={editTripModal.data?.budgetMin ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, budgetMin: e.target.value } }))} />
+                </div>
+                <div className="field">
+                  <label>Presupuesto máx.</label>
+                  <input type="number" inputMode="numeric" defaultValue={editTripModal.data?.budgetMax ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, budgetMax: e.target.value } }))} />
+                </div>
+                <div className="field">
+                  <label>Estado</label>
+                  <select defaultValue={editTripModal.data?.status ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, status: e.target.value } }))}>
+                    <option value="">-</option>
+                    <option value="active">Activo</option>
+                    <option value="upcoming">Próximo</option>
+                    <option value="completed">Completado</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Habitación</label>
+                  <select defaultValue={editTripModal.data?.roomType ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, roomType: e.target.value } }))}>
+                    <option value="">-</option>
+                    <option value="shared">Compartida</option>
+                    <option value="private">Privada</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Temporada</label>
+                  <select defaultValue={editTripModal.data?.season ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, season: e.target.value } }))}>
+                    <option value="">-</option>
+                    <option value="spring">Primavera</option>
+                    <option value="summer">Verano</option>
+                    <option value="autumn">Otoño</option>
+                    <option value="winter">Invierno</option>
+                    <option value="any">Cualquiera</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label>País</label>
+                  <input defaultValue={editTripModal.data?.country ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, country: e.target.value } }))} />
+                </div>
+              </div>
+              <div className="actions" style={{ justifyContent: 'flex-end' }}>
+                <Button className="btn secondary" variant="secondary" onClick={() => setEditTripModal({ open: false, data: null })}>Cancelar</Button>
+                <Button onClick={async () => {
+                  try {
+                    const payload = {
+                      id: editTripModal.data?.id,
+                      name: editTripModal.data?.name,
+                      origin: editTripModal.data?.origin,
+                      destination: editTripModal.data?.destination,
+                      start_date: editTripModal.data?.startDate || null,
+                      end_date: editTripModal.data?.endDate || null,
+                      budget_min: editTripModal.data?.budgetMin !== '' ? Number(editTripModal.data?.budgetMin) : null,
+                      budget_max: editTripModal.data?.budgetMax !== '' ? Number(editTripModal.data?.budgetMax) : null,
+                      status: editTripModal.data?.status || null,
+                      room_type: editTripModal.data?.roomType || null,
+                      season: editTripModal.data?.season || null,
+                      country: editTripModal.data?.country || null,
+                    }
+                    await api.post('/trips/update/', payload)
+                    setEditTripModal({ open: false, data: null })
+                    await loadTrips()
+                    setJoinDialog({ open: true, title: 'Viaje actualizado', message: 'Los cambios se guardaron correctamente.' })
+                  } catch (e) {
+                    alert(e?.response?.data?.error || e?.message || 'No se pudo actualizar el viaje')
+                  }
+                }}>Guardar</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {joinDialog.open && (
         <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="joinDialogTitle">

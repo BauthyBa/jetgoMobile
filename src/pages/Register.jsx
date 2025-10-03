@@ -351,22 +351,51 @@ export default function Register({ embedded = false }) {
                 </div>
               </>
             )}
-            <div className="field" style={{ marginTop: 4 }}>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <span>Acepto los</span>
-                <button type="button" className="btn secondary" style={{ height: 32 }} onClick={async () => {
-                  try {
-                    setTermsOpen(true)
-                    setTermsReadyToAccept(false)
-                    const res = await fetch('/terms.html', { cache: 'no-cache' })
-                    const html = await res.text()
-                    setTermsHtml(html)
-                  } catch {
-                    setTermsHtml('<h3>Términos</h3><p>No se pudo cargar el archivo. Intenta nuevamente.</p>')
-                  }
-                }}>Términos y Condiciones</button>
-                <span className="muted">{termsAccepted ? 'Aceptado' : 'No aceptado'}</span>
-              </label>
+            <div className="field" style={{ marginTop: 8, alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', width: '100%' }}>
+                <input
+                  id="terms_checkbox"
+                  type="checkbox"
+                  checked={termsAccepted}
+                  onChange={async (e) => {
+                    if (e.target.checked) {
+                      try {
+                        setTermsOpen(true)
+                        setTermsReadyToAccept(false)
+                        const res = await fetch('/terms.html', { cache: 'no-cache' })
+                        const html = await res.text()
+                        setTermsHtml(html)
+                      } catch {
+                        setTermsHtml('<h3>Términos</h3><p>No se pudo cargar el archivo. Intenta nuevamente.</p>')
+                      }
+                    } else {
+                      setTermsAccepted(false)
+                    }
+                  }}
+                  style={{ width: 18, height: 18 }}
+                />
+                <label htmlFor="terms_checkbox" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span>He leído y acepto los</span>
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    style={{ height: 28, padding: '0 10px' }}
+                    onClick={async () => {
+                      try {
+                        setTermsOpen(true)
+                        setTermsReadyToAccept(false)
+                        const res = await fetch('/terms.html', { cache: 'no-cache' })
+                        const html = await res.text()
+                        setTermsHtml(html)
+                      } catch {
+                        setTermsHtml('<h3>Términos</h3><p>No se pudo cargar el archivo. Intenta nuevamente.</p>')
+                      }
+                    }}
+                  >
+                    Términos y Condiciones
+                  </button>
+                </label>
+              </div>
             </div>
             <input type="hidden" name="dni_front_payload" value={form.dni_front_payload} />
             <div className="actions">

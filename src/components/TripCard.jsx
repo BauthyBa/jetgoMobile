@@ -1,4 +1,4 @@
-export default function TripCard({ trip, onJoin, joining }) {
+export default function TripCard({ trip, onJoin, joining, onEdit, canEdit }) {
   if (!trip) return null
   const dateRange = trip.startDate
     ? (trip.endDate ? `${new Date(trip.startDate).toLocaleDateString()} - ${new Date(trip.endDate).toLocaleDateString()}` : new Date(trip.startDate).toLocaleDateString())
@@ -39,7 +39,11 @@ export default function TripCard({ trip, onJoin, joining }) {
           ))}
         </div>
       )}
-      <div className="actions" style={{ marginTop: 8 }}>
+      <div className="actions" style={{ marginTop: 8, justifyContent: 'space-between' }}>
+        {canEdit && (
+          <button className="btn secondary" type="button" onClick={onEdit}>Editar</button>
+        )}
+        <div style={{ flex: 1 }} />
         <button className="btn" type="button" disabled={joining} onClick={onJoin}>{joining ? 'Uniendo…' : 'Unirme'}</button>
       </div>
     </div>
