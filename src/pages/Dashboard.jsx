@@ -392,7 +392,7 @@ export default function Dashboard() {
                             {messages.length === 0 && <p className="muted">No hay mensajes aún.</p>}
                           </div>
                         </div>
-                         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                           <Input
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
@@ -410,8 +410,9 @@ export default function Dashboard() {
 
             {section === 'trips' && (
               <section id="trips" className="glass-card" style={{ marginTop: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <h3 className="page-title" style={{ color: '#60a5fa' }}>Viajes disponibles</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'center', gap: 8 }}>
+                  <h3 className="page-title" style={{ color: '#60a5fa', margin: 0 }}>Viajes disponibles</h3>
+                  <Button variant="secondary" onClick={() => setFiltersOpen(true)}>Filtros</Button>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <Button onClick={() => setShowCreateModal(true)} className="btn sky">Crear viaje</Button>
                     <Button
@@ -419,6 +420,7 @@ export default function Dashboard() {
                       onClick={() => {
                         const mine = (tripsBase || []).filter((t) => t.creatorId && t.creatorId === profile?.user_id)
                         setTrips(mine)
+                        setVisibleCount(6)
                       }}
                     >
                       Mis viajes
@@ -429,7 +431,7 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                     <div style={{ fontSize: 14 }} className="muted">Usá filtros para encontrar tu viaje ideal</div>
                     <Button variant="secondary" onClick={() => setFiltersOpen(true)}>Filtros</Button>
-                  </div>
+                        </div>
                   {trips.length === 0 && <p className="muted" style={{ marginTop: 12, textAlign: 'center' }}>No hay viajes que coincidan.</p>}
                   {trips.length > 0 && (
                     <div style={{ marginTop: 12 }}>
@@ -688,40 +690,40 @@ export default function Dashboard() {
       {showCreateModal && (
         <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="createTripTitle">
           <div className="overlay-box" style={{ maxWidth: 840, width: '95%' }}>
-            <h3 id="createTripTitle" className="page-title" style={{ margin: 0 }}>Crear viaje</h3>
-            <div className="glass-card" style={{ padding: 12, marginTop: 8 }}>
+            <h3 id="createTripTitle" className="page-title" style={{ margin: 0, color: '#60a5fa' }}>Crear viaje</h3>
+            <div className="glass-card" style={{ padding: 16, marginTop: 8, background: 'linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="field">
                   <label>Nombre</label>
-                  <input value={trip.name} onChange={(e) => setTrip({ ...trip, name: e.target.value })} placeholder="Ej: Bariloche 2025" />
+                  <input value={trip.name} onChange={(e) => setTrip({ ...trip, name: e.target.value })} placeholder="Ej: Bariloche 2025" style={{ color: '#e5e7eb' }} />
                 </div>
                 <div className="field">
                   <label>Origen</label>
-                  <input value={trip.origin} onChange={(e) => setTrip({ ...trip, origin: e.target.value })} placeholder="Ciudad de origen" />
+                  <input value={trip.origin} onChange={(e) => setTrip({ ...trip, origin: e.target.value })} placeholder="Ciudad de origen" style={{ color: '#e5e7eb' }} />
                 </div>
                 <div className="field">
                   <label>Destino</label>
-                  <input value={trip.destination} onChange={(e) => setTrip({ ...trip, destination: e.target.value })} placeholder="Ciudad de destino" />
+                  <input value={trip.destination} onChange={(e) => setTrip({ ...trip, destination: e.target.value })} placeholder="Ciudad de destino" style={{ color: '#e5e7eb' }} />
                 </div>
                 <div className="field">
                   <label>Desde</label>
-                  <input type="date" value={trip.startDate} onChange={(e) => setTrip({ ...trip, startDate: e.target.value })} />
+                  <input type="date" value={trip.startDate} onChange={(e) => setTrip({ ...trip, startDate: e.target.value })} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }} />
                 </div>
                 <div className="field">
                   <label>Hasta</label>
-                  <input type="date" value={trip.endDate} onChange={(e) => setTrip({ ...trip, endDate: e.target.value })} />
+                  <input type="date" value={trip.endDate} onChange={(e) => setTrip({ ...trip, endDate: e.target.value })} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }} />
                 </div>
                 <div className="field">
                   <label>Presupuesto mín.</label>
-                  <input type="number" inputMode="numeric" value={trip.budgetMin} onChange={(e) => setTrip({ ...trip, budgetMin: e.target.value })} placeholder="0" />
+                  <input type="number" inputMode="numeric" value={trip.budgetMin} onChange={(e) => setTrip({ ...trip, budgetMin: e.target.value })} placeholder="0" style={{ color: '#e5e7eb' }} />
                 </div>
                 <div className="field">
                   <label>Presupuesto máx.</label>
-                  <input type="number" inputMode="numeric" value={trip.budgetMax} onChange={(e) => setTrip({ ...trip, budgetMax: e.target.value })} placeholder="9999" />
+                  <input type="number" inputMode="numeric" value={trip.budgetMax} onChange={(e) => setTrip({ ...trip, budgetMax: e.target.value })} placeholder="9999" style={{ color: '#e5e7eb' }} />
                 </div>
                 <div className="field">
                   <label>Estado</label>
-                  <select value={trip.status} onChange={(e) => setTrip({ ...trip, status: e.target.value })}>
+                  <select value={trip.status} onChange={(e) => setTrip({ ...trip, status: e.target.value })} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }}>
                     <option value="">-</option>
                     <option value="active">Activo</option>
                     <option value="upcoming">Próximo</option>
@@ -730,7 +732,7 @@ export default function Dashboard() {
                 </div>
                 <div className="field">
                   <label>Habitación</label>
-                  <select value={trip.roomType} onChange={(e) => setTrip({ ...trip, roomType: e.target.value })}>
+                  <select value={trip.roomType} onChange={(e) => setTrip({ ...trip, roomType: e.target.value })} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }}>
                     <option value="">-</option>
                     <option value="shared">Compartida</option>
                     <option value="private">Privada</option>
@@ -738,7 +740,7 @@ export default function Dashboard() {
                 </div>
                 <div className="field">
                   <label>Temporada</label>
-                  <select value={trip.season} onChange={(e) => setTrip({ ...trip, season: e.target.value })}>
+                  <select value={trip.season} onChange={(e) => setTrip({ ...trip, season: e.target.value })} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }}>
                     <option value="">-</option>
                     <option value="spring">Primavera</option>
                     <option value="summer">Verano</option>
@@ -749,7 +751,7 @@ export default function Dashboard() {
                 </div>
                 <div className="field">
                   <label>País</label>
-                  <input value={trip.country} onChange={(e) => setTrip({ ...trip, country: e.target.value })} placeholder="Argentina" />
+                  <input value={trip.country} onChange={(e) => setTrip({ ...trip, country: e.target.value })} placeholder="Argentina" style={{ color: '#e5e7eb' }} />
                 </div>
               </div>
               <div className="actions" style={{ justifyContent: 'flex-end' }}>

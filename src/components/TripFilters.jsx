@@ -29,7 +29,8 @@ export default function TripFilters({ baseTrips, onFilter }) {
 		return Array.from(set)
 	}, [baseTrips])
 
-	useEffect(() => {
+
+	function applyFilters() {
 		const q = query.trim().toLowerCase()
 		const o = origin.trim().toLowerCase()
 		const d = destination.trim().toLowerCase()
@@ -39,29 +40,20 @@ export default function TripFilters({ baseTrips, onFilter }) {
 		const maxB = maxBudget !== '' ? Number(maxBudget) : null
 
 		const filtered = (baseTrips || []).filter((t) => {
-			// Status, season, roomType, country
 			if (status && t.status !== status) return false
 			if (season && t.season !== season) return false
 			if (roomType && t.roomType !== roomType) return false
 			if (country && t?.raw?.country !== country) return false
-
-			// Origin/Destination
 			if (o && !(t.origin || '').toLowerCase().includes(o)) return false
 			if (d && !(t.destination || '').toLowerCase().includes(d)) return false
-
-			// Date range: compare start/end
 			const start = t.startDate ? new Date(t.startDate) : null
 			const end = t.endDate ? new Date(t.endDate) : start
 			if (from && start && start < from) return false
 			if (to && end && end > to) return false
-
-			// Budget overlap
 			const tripMin = t.budgetMin ?? t.budgetMax ?? 0
 			const tripMax = t.budgetMax ?? t.budgetMin ?? Number.POSITIVE_INFINITY
 			if (minB !== null && tripMax < minB) return false
 			if (maxB !== null && tripMin > maxB) return false
-
-			// Text query
 			if (!q) return true
 			const haystack = [t.name, t.destination, t.origin, ...(t.tags || [])]
 				.filter(Boolean)
@@ -70,7 +62,22 @@ export default function TripFilters({ baseTrips, onFilter }) {
 			return haystack.includes(q)
 		})
 		onFilter(filtered)
-	}, [query, origin, destination, dateFrom, dateTo, minBudget, maxBudget, status, season, roomType, country, baseTrips, onFilter])
+	}
+
+	function clearAll() {
+		setQuery('')
+		setOrigin('')
+		setDestination('')
+		setDateFrom('')
+		setDateTo('')
+		setMinBudget('')
+		setMaxBudget('')
+		setStatus('')
+		setSeason('')
+		setRoomType('')
+		setCountry('')
+		onFilter(baseTrips || [])
+	}
 
 	return (
 		<div className="card glass-card" style={{ marginTop: 16 }}>
@@ -143,6 +150,10 @@ export default function TripFilters({ baseTrips, onFilter }) {
 						))}
 					</select>
 				</div>
+			</div>
+			<div className="actions" style={{ justifyContent: 'flex-end', marginTop: 12 }}>
+				<button className="btn secondary" type="button" onClick={clearAll}>Limpiar</button>
+				<button className="btn" type="button" onClick={applyFilters}>Buscar</button>
 			</div>
 		</div>
 	)
