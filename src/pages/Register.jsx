@@ -7,7 +7,7 @@ import { getSession, updateUserMetadata } from '../services/supabase'
 import { upsertProfileToBackend } from '../services/api'
 import { signInWithGoogle, supabase } from '../services/supabase'
 
-export default function Register() {
+export default function Register({ embedded = false }) {
   const location = useLocation()
   const navigate = useNavigate()
   const googleMode = new URLSearchParams(location.search).get('mode') === 'google'
@@ -289,13 +289,10 @@ export default function Register() {
     }
   }
 
-  return (
+  const inner = (
     <>
-      <div className="container">
-        <div className="card glass-card">
-          <h2 className="page-title">Registro</h2>
-          <p className="muted">Subí la foto del frente del DNI para verificar tus datos. Ingresá tus datos manualmente en los campos de abajo.</p>
-          <form className="form form-grid" onSubmit={handleSubmit}>
+      <p className="muted">Subí la foto del frente del DNI para verificar tus datos. Ingresá tus datos manualmente en los campos de abajo.</p>
+      <form className="form form-grid" onSubmit={handleSubmit}>
             <div className="field">
               <label>Foto del DNI (frente)</label>
               <input type="file" accept="image/*" onChange={handleImageChange} />
@@ -312,11 +309,11 @@ export default function Register() {
             </div>
             <div className="field">
               <label>Nombres</label>
-              <input name="first_name" value={form.first_name} onChange={handleChange} required />
+              <input name="first_name" value={form.first_name} onChange={handleChange} placeholder="Ejemplo: Juan Carlos" required />
             </div>
             <div className="field">
               <label>Apellidos</label>
-              <input name="last_name" value={form.last_name} onChange={handleChange} required />
+              <input name="last_name" value={form.last_name} onChange={handleChange} placeholder="Ejemplo: Pérez Gómez" required />
             </div>
             <div className="field">
               <label>Número de Documento</label>
@@ -337,7 +334,7 @@ export default function Register() {
               <>
                 <div className="field">
                   <label>Correo</label>
-                  <input type="email" name="email" value={form.email} onChange={handleChange} required />
+                  <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="ejemplo@email.com" required />
                 </div>
                 <div className="field">
                   <label>Contraseña</label>
@@ -353,9 +350,22 @@ export default function Register() {
             </div>
             {ok && <p className="success">Revisa tu correo para confirmar la cuenta. Luego podés iniciar sesión.</p>}
             {error && <pre className="error">{error}</pre>}
-          </form>
+      </form>
+    </>
+  )
+
+  return (
+    <>
+      {embedded ? (
+        <>{inner}</>
+      ) : (
+        <div className="container">
+          <div className="card glass-card">
+            <h2 className="page-title">Registro</h2>
+            {inner}
+          </div>
         </div>
-      </div>
+      )}
       {overlay.visible && (
         <div className="overlay">
           <div className="overlay-box">
