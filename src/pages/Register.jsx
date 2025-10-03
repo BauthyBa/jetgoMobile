@@ -50,19 +50,31 @@ export default function Register({ embedded = false }) {
         return cached
       }
     } catch {}
-    try {
-      const res = await fetch('/terms.html', { cache: 'force-cache' })
-      const html = await res.text()
-      termsHtmlRef.current = html
-      setTermsHtml(html)
-      try { sessionStorage.setItem('terms_html', html) } catch {}
-      return html
-    } catch {
-      const fallback = '<h3>Términos</h3><p>No se pudo cargar el archivo. Intenta nuevamente.</p>'
-      setTermsHtml(fallback)
-      termsHtmlRef.current = fallback
-      return fallback
+    const base = (import.meta?.env?.BASE_URL ?? '/')
+    const candidates = [
+      `${base.replace(/\/$/, '/') }terms.html`,
+      'terms.html',
+      '/terms.html',
+    ]
+    for (const url of candidates) {
+      try {
+        const res = await fetch(url, { cache: 'no-store' })
+        if (!res.ok) throw new Error('HTTP ' + res.status)
+        const html = await res.text()
+        if (html && html.length > 20) {
+          termsHtmlRef.current = html
+          setTermsHtml(html)
+          try { sessionStorage.setItem('terms_html', html) } catch {}
+          return html
+        }
+      } catch (e) {
+        // try next candidate
+      }
     }
+    const fallback = '<h3>Términos</h3><p>No se pudo cargar el archivo. Intenta nuevamente.</p>'
+    setTermsHtml(fallback)
+    termsHtmlRef.current = fallback
+    return fallback
   }, [])
 
   useEffect(() => {
@@ -405,16 +417,25 @@ export default function Register({ embedded = false }) {
                 />
                 <label htmlFor="terms_checkbox" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <span>He leído y acepto los</span>
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    style={{ height: 28, padding: '0 10px' }}
-                    onClick={async () => {
+                  <span
+                    role="link"
+                    tabIndex={0}
+                    style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }}
+                    onClick={async (e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
                       openTerms()
+                    }}
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        openTerms()
+                      }
                     }}
                   >
                     Términos y Condiciones
-                  </button>
+                  </span>
                 </label>
               </div>
             </div>
