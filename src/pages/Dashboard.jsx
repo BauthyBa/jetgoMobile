@@ -877,12 +877,17 @@ export default function Dashboard() {
           {(chatMembers || []).length === 0 && <p className="muted">No se pudieron cargar los integrantes o no hay datos.</p>}
           {(chatMembers || []).length > 0 && (
             <div style={{ display: 'grid', gap: 6 }}>
-              {chatMembers.map((m) => (
-                <div key={m.user_id} className="glass-card" style={{ padding: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontWeight: 600 }}>{m.name || m.user_id}</div>
-                  <div className="muted" style={{ fontSize: 12 }}>{m.user_id}</div>
-                </div>
-              ))}
+                  {chatMembers.map((m) => (
+                    <button
+                      key={m.user_id}
+                      className="glass-card"
+                      style={{ padding: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left' }}
+                      onClick={() => { try { window.location.href = `/u/${m.user_id}` } catch {} }}
+                    >
+                      <div style={{ fontWeight: 600 }}>{m.name || m.user_id}</div>
+                      <div className="muted" style={{ fontSize: 12 }}>{m.user_id}</div>
+                    </button>
+                  ))}
             </div>
           )}
         </div>

@@ -7,6 +7,7 @@ import Register from './pages/Register.jsx'
 import Login from './pages/Login.jsx'
 import Signup from './pages/Signup.jsx'
 import Dashboard from './pages/Dashboard.jsx'
+import PublicProfile from './pages/PublicProfile.jsx'
 import VerifyDni from './pages/VerifyDni.jsx'
 import Layout from './components/Layout.jsx'
 
@@ -21,6 +22,7 @@ const router = createBrowserRouter([
       { path: 'signup', element: <Signup /> },
       { path: 'verify-dni', element: <VerifyDni /> },
       { path: 'dashboard', element: <Dashboard /> },
+      { path: 'u/:userId', element: <PublicProfile /> },
     ],
   },
 ])
