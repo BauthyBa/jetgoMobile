@@ -61,6 +61,7 @@ export default function Dashboard() {
   const [participantsTripId, setParticipantsTripId] = useState('')
   const [splitMode, setSplitMode] = useState('all')
   const [splitSelected, setSplitSelected] = useState([])
+  const [joinDialog, setJoinDialog] = useState({ open: false, title: '', message: '' })
 
   useEffect(() => {
     let mounted = true
@@ -321,7 +322,21 @@ export default function Dashboard() {
                   ) : ''}
                 </h1>
                 <p className="muted">Aquí está tu resumen de viajes</p>
-                <div style={{ marginTop: 12 }}>
+                <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+                  <div className="glass-card" style={{ padding: 16 }}>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>Mis viajes</div>
+                    <div style={{ fontSize: 28, fontWeight: 800 }}>{tripsBase.length}</div>
+                  </div>
+                  <div className="glass-card" style={{ padding: 16 }}>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>Chats</div>
+                    <div style={{ fontSize: 28, fontWeight: 800 }}>{rooms.length}</div>
+                  </div>
+                  <div className="glass-card" style={{ padding: 16 }}>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>Gastos guardados</div>
+                    <div style={{ fontSize: 28, fontWeight: 800 }}>{expenses.length}</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 16 }}>
                   <Button
                     variant="secondary"
                     onClick={async () => {
@@ -350,12 +365,12 @@ export default function Dashboard() {
 
             {section === 'chats' && (
               <section id="chats" style={{ marginTop: 16 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 16 }}>
-                  <div className="glass-card" style={{ padding: 12 }}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="glass-card md:col-span-1" style={{ padding: 12 }}>
                     <h3 className="page-title" style={{ color: '#60a5fa', marginBottom: 8 }}>Chats</h3>
                     <ChatsCard rooms={rooms} onOpen={openRoom} />
                   </div>
-                  <div className="glass-card" style={{ padding: 12, minHeight: 360, display: 'flex', flexDirection: 'column' }}>
+                  <div className="glass-card md:col-span-2" style={{ padding: 12, minHeight: 360, display: 'flex', flexDirection: 'column' }}>
                     {!activeRoomId && (
                       <p className="muted">Seleccioná un chat para comenzar</p>
                     )}
@@ -373,7 +388,7 @@ export default function Dashboard() {
                             {messages.length === 0 && <p className="muted">No hay mensajes aún.</p>}
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                           <Input
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
@@ -515,9 +530,9 @@ export default function Dashboard() {
                           try {
                             if (!profile?.user_id) throw new Error('Sin usuario')
                             setJoiningId(t.id)
-                            const data = await joinTrip(t.id, profile.user_id)
-                            if (data?.ok !== false) {
-                              alert('Te uniste al viaje')
+                        const data = await joinTrip(t.id, profile.user_id)
+                        if (data?.ok !== false) {
+                          setJoinDialog({ open: true, title: '¡Te uniste al viaje!', message: 'Podés ver el chat del grupo o seguir explorando.' })
                               const r = await listRoomsForUser(profile.user_id)
                               setRooms(r)
                             } else {
@@ -752,6 +767,32 @@ export default function Dashboard() {
           </>
         )}
       </div>
+
+      {joinDialog.open && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="joinDialogTitle">
+          <div className="overlay-box" style={{ textAlign: 'center' }}>
+            <div style={{
+              width: 56,
+              height: 56,
+              borderRadius: 9999,
+              background: 'linear-gradient(135deg, #2563eb, #22c55e)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontWeight: 800,
+              fontSize: 28,
+              boxShadow: '0 10px 30px rgba(37,99,235,0.45)'
+            }}>✓</div>
+            <h3 id="joinDialogTitle" style={{ margin: '12px 0 4px 0', fontWeight: 800 }}> {joinDialog.title} </h3>
+            <p className="muted" style={{ marginBottom: 12 }}>{joinDialog.message}</p>
+            <div className="actions" style={{ justifyContent: 'center' }}>
+              <Button onClick={() => { window.location.hash = '#chats'; setJoinDialog({ open: false, title: '', message: '' }) }}>Ir a chats</Button>
+              <Button variant="secondary" onClick={() => setJoinDialog({ open: false, title: '', message: '' })}>Cerrar</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   )
 }
