@@ -20,7 +20,7 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-2">
-            <img src="/jetgo.svg" alt="JetGo" width="36" height="36" />
+            <img src="/jetgo.png?v=2" alt="JetGo" width="44" height="44" />
             <Link to="/" className="text-3xl font-extrabold text-white hover:text-emerald-400 transition-colors">JetGo</Link>
           </div>
           <div className="hidden md:flex items-center space-x-8">

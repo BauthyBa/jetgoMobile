@@ -40,6 +40,8 @@
   --glass-stroke: rgba(255, 255, 255, 0.18);
 }
 
+html { scroll-behavior: smooth; }
+
 * {
   box-sizing: border-box;
 }
@@ -78,6 +80,9 @@ body::before {
 
 a { color: hsl(var(--primary)); text-decoration: none; }
 a:hover { color: hsl(var(--primary-glow)); }
+
+/* Prevent fixed navbar from covering anchor targets */
+[id] { scroll-margin-top: 96px; }
 
 button { @apply rounded-lg; }
 

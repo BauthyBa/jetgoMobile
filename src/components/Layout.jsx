@@ -30,7 +30,7 @@ export default function Layout() {
               {!loggedIn && null}
             </nav>
             <Link to="/" className="brand" aria-label="JetGo">
-              <img src="/jetgo.svg" alt="" width="20" height="20" style={{ verticalAlign: 'middle', marginRight: 8 }} />
+              <img src="/jetgo.png?v=2" alt="" style={{ height: '1.1em', width: 'auto', verticalAlign: 'middle', marginRight: 8 }} />
               JetGo
             </Link>
           </div>
