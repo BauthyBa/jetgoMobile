@@ -410,11 +410,12 @@ export default function Dashboard() {
 
             {section === 'trips' && (
               <section id="trips" className="glass-card" style={{ marginTop: 16 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'center', gap: 8 }}>
-                  <h3 className="page-title" style={{ color: '#60a5fa', margin: 0 }}>Viajes disponibles</h3>
-                  <Button variant="secondary" onClick={() => setFiltersOpen(true)}>Filtros</Button>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <Button onClick={() => setShowCreateModal(true)} className="btn sky">Crear viaje</Button>
+                <div style={{ display: 'grid', placeItems: 'center' }}>
+                  <h3 className="page-title" style={{ color: '#60a5fa', margin: 0, textAlign: 'center' }}>Viajes disponibles</h3>
+                </div>
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+                    <Button variant="secondary" onClick={() => setFiltersOpen(true)}>Filtrar</Button>
                     <Button
                       variant="secondary"
                       onClick={() => {
@@ -425,13 +426,8 @@ export default function Dashboard() {
                     >
                       Mis viajes
                     </Button>
+                    <Button onClick={() => setShowCreateModal(true)} className="btn sky">Crear viaje</Button>
                   </div>
-                </div>
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <div style={{ fontSize: 14 }} className="muted">Usá filtros para encontrar tu viaje ideal</div>
-                    <Button variant="secondary" onClick={() => setFiltersOpen(true)}>Filtros</Button>
-                        </div>
                   {trips.length === 0 && <p className="muted" style={{ marginTop: 12, textAlign: 'center' }}>No hay viajes que coincidan.</p>}
                   {trips.length > 0 && (
                     <div style={{ marginTop: 12 }}>
@@ -723,7 +719,7 @@ export default function Dashboard() {
                 </div>
                 <div className="field">
                   <label>Estado</label>
-                  <select value={trip.status} onChange={(e) => setTrip({ ...trip, status: e.target.value })} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }}>
+                  <select value={trip.status} onChange={(e) => setTrip({ ...trip, status: e.target.value })} style={{ color: '#111827', background: '#ffffff' }}>
                     <option value="">-</option>
                     <option value="active">Activo</option>
                     <option value="upcoming">Próximo</option>
@@ -732,7 +728,7 @@ export default function Dashboard() {
                 </div>
                 <div className="field">
                   <label>Habitación</label>
-                  <select value={trip.roomType} onChange={(e) => setTrip({ ...trip, roomType: e.target.value })} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }}>
+                  <select value={trip.roomType} onChange={(e) => setTrip({ ...trip, roomType: e.target.value })} style={{ color: '#111827', background: '#ffffff' }}>
                     <option value="">-</option>
                     <option value="shared">Compartida</option>
                     <option value="private">Privada</option>
@@ -740,7 +736,7 @@ export default function Dashboard() {
                 </div>
                 <div className="field">
                   <label>Temporada</label>
-                  <select value={trip.season} onChange={(e) => setTrip({ ...trip, season: e.target.value })} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }}>
+                  <select value={trip.season} onChange={(e) => setTrip({ ...trip, season: e.target.value })} style={{ color: '#111827', background: '#ffffff' }}>
                     <option value="">-</option>
                     <option value="spring">Primavera</option>
                     <option value="summer">Verano</option>

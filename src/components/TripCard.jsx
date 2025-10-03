@@ -11,7 +11,7 @@ export default function TripCard({ trip, onJoin, joining, onEdit, canEdit }) {
     : null
 
   return (
-    <div className="card glass-card" style={{ padding: 16, display: 'grid', gap: 12, minHeight: 220 }}>
+    <div className="card glass-card" style={{ padding: 16, display: 'grid', gap: 12, minHeight: 260 }}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         {trip.imageUrl && (
           <img src={trip.imageUrl} alt={trip.name} style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover' }} />
