@@ -11,7 +11,7 @@ export default function TripCard({ trip, onJoin, joining, onEdit, canEdit }) {
     : null
 
   return (
-    <div className="card glass-card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, height: 320 }}>
+    <div className="card glass-card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, width: 260, height: 260 }}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         {trip.imageUrl && (
           <img src={trip.imageUrl} alt={trip.name} style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover' }} />
@@ -24,6 +24,7 @@ export default function TripCard({ trip, onJoin, joining, onEdit, canEdit }) {
             {(trip.origin || 'Origen ?')} → {(trip.destination || 'Destino ?')}
           </div>
           {dateRange && <div className="muted">{dateRange}</div>}
+          {trip.country && <div className="muted">{trip.country}</div>}
         </div>
       </div>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>

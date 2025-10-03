@@ -432,7 +432,7 @@ export default function Dashboard() {
                   {trips.length > 0 && (
                     <div style={{ marginTop: 12 }}>
                       <TripGrid
-                        trips={trips.slice(0, visibleCount)}
+                        trips={trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id)).slice(0, visibleCount)}
                         joiningId={joiningId}
                         onJoin={async (t) => {
                           try {
@@ -815,7 +815,7 @@ export default function Dashboard() {
               <h3 id="filtersTitle" className="page-title" style={{ margin: 0, textAlign: 'center' }}>Filtros</h3>
             </div>
             <div style={{ marginTop: 8 }}>
-              <TripFilters baseTrips={tripsBase} onFilter={(f) => { setTrips(f); setVisibleCount(6) }} />
+              <TripFilters baseTrips={tripsBase} onFilter={(f) => { setTrips(f); setVisibleCount(6) }} onDone={() => setFiltersOpen(false)} />
             </div>
           </div>
         </div>

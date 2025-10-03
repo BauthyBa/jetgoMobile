@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 
-export default function TripFilters({ baseTrips, onFilter }) {
+export default function TripFilters({ baseTrips, onFilter, onDone }) {
 	const [query, setQuery] = useState('')
 	const [origin, setOrigin] = useState('')
 	const [destination, setDestination] = useState('')
@@ -61,7 +61,8 @@ export default function TripFilters({ baseTrips, onFilter }) {
 				.toLowerCase()
 			return haystack.includes(q)
 		})
-		onFilter(filtered)
+			onFilter(filtered)
+			if (onDone) onDone()
 	}
 
 	function clearAll() {
