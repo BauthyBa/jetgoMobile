@@ -15,36 +15,39 @@ export default function DashboardLayout({ children }) {
     return currentHash === (item.hash || '')
   }
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white" style={{ display: 'flex' }}>
-      <aside className="glass-aside" style={{ width: 240, padding: 16 }}>
-        <GlassCard>
-          <div style={{ display: 'grid', gap: 12 }}>
-            <div>
-              <h1 style={{ fontSize: 20, fontWeight: 800, background: 'linear-gradient(135deg, #3b82f6, #22c55e)', WebkitBackgroundClip: 'text', color: 'transparent' }}>JetGo</h1>
-              <p className="muted" style={{ fontSize: 12, color: '#94a3b8' }}>Viaja, comparte, ahorra</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white" style={{ display: 'flex', flexDirection: 'column' }}>
+      <nav className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-700/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-3 items-center h-16">
+            <div className="flex items-center gap-2">
+              <Link to="/dashboard#inicio" className="flex items-center gap-2">
+                <img src="/jetgo.png?v=2" alt="JetGo" width="36" height="36" />
+                <span className="text-2xl font-extrabold text-white hover:text-emerald-400 transition-colors">JetGo</span>
+              </Link>
             </div>
-            <nav style={{ display: 'grid', gap: 8 }}>
+            <div className="hidden md:flex items-center justify-center space-x-6">
               {nav.map((n) => (
                 <Link
                   key={n.path}
                   to={n.path}
-                  className="btn secondary"
-                  style={{
-                    justifyContent: 'flex-start',
-                    borderColor: isActive(n) ? 'rgba(59,130,246,0.55)' : undefined,
-                    boxShadow: isActive(n) ? '0 8px 24px rgba(0, 164, 224, 0.35), inset 0 0 0 1px rgba(255,255,255,0.06)' : undefined,
-                    background: isActive(n) ? 'linear-gradient(135deg, rgba(59,130,246,0.20), rgba(34,197,94,0.18))' : undefined,
-                  }}
+                  className={"font-medium transition-colors " + (isActive(n) ? 'text-blue-400' : 'text-slate-200 hover:text-emerald-400')}
                 >
                   {n.label}
                 </Link>
               ))}
-            </nav>
-            <div className="muted" style={{ fontSize: 12, color: '#94a3b8' }}>Versión 1.0.0</div>
+            </div>
+            <div className="flex items-center justify-end">
+              <span className="text-xs text-slate-400">v1.0.0</span>
+            </div>
           </div>
-        </GlassCard>
-      </aside>
-      <main style={{ flex: 1, overflow: 'auto', scrollBehavior: 'smooth' }}>{children}</main>
+        </div>
+      </nav>
+
+      <main style={{ flex: 1, overflow: 'auto', scrollBehavior: 'smooth' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 md:pt-8">
+          {children}
+        </div>
+      </main>
     </div>
   )
 }
