@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { getSession, supabase, updateUserMetadata } from '../services/supabase'
 import { listRoomsForUser, fetchMessages, sendMessage, subscribeToRoomMessages, inviteByEmail } from '@/services/chat'
 import { api } from '@/services/api'
-import { listTrips as fetchTrips, joinTrip } from '@/services/trips'
+import { listTrips as fetchTrips, joinTrip, leaveTrip } from '@/services/trips'
 import TripFilters from '@/components/TripFilters'
 import TripGrid from '@/components/TripGrid'
 import DashboardLayout from '@/components/DashboardLayout'
@@ -41,12 +41,16 @@ export default function Dashboard() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [editTripModal, setEditTripModal] = useState({ open: false, data: null })
   const [joiningId, setJoiningId] = useState(null)
+  const [leavingId, setLeavingId] = useState(null)
   const [activeRoomId, setActiveRoomId] = useState(null)
+  const [activeRoom, setActiveRoom] = useState(null)
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [userNames, setUserNames] = useState({})
   const [inviteEmail, setInviteEmail] = useState('')
   const [unsub, setUnsub] = useState(null)
+  const [chatInfoOpen, setChatInfoOpen] = useState(false)
+  const [chatMembers, setChatMembers] = useState([])
   const navigate = useNavigate()
   const location = useLocation()
   const budgetTrips = trips.filter((t) => t && (t.budgetMin != null || t.budgetMax != null))
@@ -211,6 +215,7 @@ export default function Dashboard() {
       const roomId = room?.id
       if (!roomId) return
       setActiveRoomId(roomId)
+      setActiveRoom(room || null)
       window.location.hash = '#chats'
       const initial = await fetchMessages(roomId)
       setMessages(initial)
@@ -381,6 +386,30 @@ export default function Dashboard() {
                     )}
                     {activeRoomId && (
                       <>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 8 }}>
+                          <div style={{ fontWeight: 700, fontSize: 16 }}>{activeRoom?.name || 'Chat'}</div>
+                          <button
+                            className="btn secondary"
+                            style={{ height: 28, padding: '0 10px' }}
+                            onClick={async () => {
+                              try {
+                                const tripId = activeRoom?.trip_id
+                                if (!tripId) {
+                                  alert('No se pueden cargar integrantes: falta el trip_id asociado a esta sala')
+                                  return
+                                }
+                                const res = await api.get('/trips/members/', { params: { trip_id: tripId } })
+                                const members = Array.isArray(res?.data?.members) ? res.data.members : []
+                                setChatMembers(members)
+                                setChatInfoOpen(true)
+                              } catch (e) {
+                                alert('No se pudieron cargar los integrantes')
+                              }
+                            }}
+                          >
+                            Ver información
+                          </button>
+                        </div>
                         <div style={{ flex: 1, overflow: 'auto', paddingRight: 8 }}>
                           <div style={{ display: 'grid', gap: 8 }}>
                             {messages.map((m) => (
@@ -397,6 +426,14 @@ export default function Dashboard() {
                           <Input
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
+                            onKeyDown={(e) => {
+                              try {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault()
+                                  handleSend()
+                                }
+                              } catch {}
+                            }}
                             placeholder="Escribí un mensaje..."
                             className="flex-1 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
                           />
@@ -450,6 +487,7 @@ export default function Dashboard() {
                       <TripGrid
                         trips={(showMineOnly ? trips : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id))).slice(0, visibleCount)}
                         joiningId={joiningId}
+                        leavingId={leavingId}
                         onJoin={async (t) => {
                           try {
                             if (!profile?.user_id) throw new Error('Sin usuario')
@@ -468,8 +506,35 @@ export default function Dashboard() {
                             setJoiningId(null)
                           }
                         }}
+                        onLeave={async (t) => {
+                          try {
+                            if (!profile?.user_id) throw new Error('Sin usuario')
+                            const confirmMsg = (t.creatorId && t.creatorId === profile.user_id)
+                              ? 'Sos el organizador. Se eliminará el viaje y su chat para todos. ¿Continuar?'
+                              : '¿Seguro que querés abandonar este viaje?'
+                            if (!confirm(confirmMsg)) return
+                            setLeavingId(t.id)
+                            const data = await leaveTrip(t.id, profile.user_id)
+                            if (data?.ok !== false) {
+                              await loadTrips()
+                              // refrescar salas de chat por si cambió membresía o se eliminó
+                              try { const r = await listRoomsForUser(profile.user_id); setRooms(r) } catch {}
+                              setJoinDialog({ open: true, title: (t.creatorId && t.creatorId === profile.user_id) ? 'Viaje eliminado' : 'Saliste del viaje', message: (t.creatorId && t.creatorId === profile.user_id) ? 'Se eliminó el viaje y su chat.' : 'Ya no sos parte del viaje.' })
+                            } else {
+                              alert(data?.error || 'No se pudo abandonar/eliminar el viaje')
+                            }
+                          } catch (e) {
+                            alert(e?.message || 'Error al abandonar/eliminar')
+                          } finally {
+                            setLeavingId(null)
+                          }
+                        }}
                         onEdit={(t) => { setEditTripModal({ open: true, data: t }) }}
                         canEdit={(t) => t.creatorId && t.creatorId === profile?.user_id}
+                        isMemberFn={(t) => {
+                          try { return Array.isArray(rooms) && rooms.some((r) => String(r?.trip_id) === String(t.id)) } catch { return false }
+                        }}
+                        isOwnerFn={(t) => t.creatorId && t.creatorId === profile?.user_id}
                       />
                       {visibleCount < (showMineOnly ? trips.length : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id))).length && (
                         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
@@ -802,6 +867,64 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+  {chatInfoOpen && (
+    <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="chatInfoTitle">
+      <div className="overlay-box" style={{ maxWidth: 600, width: '95%' }}>
+        <h3 id="chatInfoTitle" className="page-title" style={{ margin: 0 }}>{activeRoom?.name || 'Información del chat'}</h3>
+        <div className="glass-card" style={{ padding: 12, marginTop: 8 }}>
+          <h4 style={{ fontWeight: 700, marginBottom: 8 }}>Integrantes</h4>
+          {(chatMembers || []).length === 0 && <p className="muted">No se pudieron cargar los integrantes o no hay datos.</p>}
+          {(chatMembers || []).length > 0 && (
+            <div style={{ display: 'grid', gap: 6 }}>
+              {chatMembers.map((m) => (
+                <div key={m.user_id} className="glass-card" style={{ padding: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontWeight: 600 }}>{m.name || m.user_id}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>{m.user_id}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="actions" style={{ justifyContent: 'space-between', marginTop: 12 }}>
+          <Button variant="secondary" onClick={() => setChatInfoOpen(false)}>Cerrar</Button>
+          {activeRoom?.trip_id && (
+            <Button
+              onClick={async () => {
+                try {
+                  const tid = activeRoom?.trip_id
+                  if (!tid || !profile?.user_id) return
+                  const isOwner = (tripsBase || []).some((t) => String(t.id) === String(tid) && t.creatorId === profile.user_id)
+                  const confirmMsg = isOwner
+                    ? 'Sos el organizador. Se eliminará el viaje y su chat para todos. ¿Continuar?'
+                    : '¿Seguro que querés abandonar este viaje?'
+                  if (!confirm(confirmMsg)) return
+                  setLeavingId(tid)
+                  const data = await leaveTrip(tid, profile.user_id)
+                  if (data?.ok !== false) {
+                    setChatInfoOpen(false)
+                    setActiveRoomId(null)
+                    setActiveRoom(null)
+                    setMessages([])
+                    try { const r = await listRoomsForUser(profile.user_id); setRooms(r) } catch {}
+                    await loadTrips()
+                  } else {
+                    alert(data?.error || 'No se pudo abandonar/eliminar el viaje')
+                  }
+                } catch (e) {
+                  alert(e?.message || 'Error al abandonar/eliminar')
+                } finally {
+                  setLeavingId(null)
+                }
+              }}
+            >
+              {(() => { const isOwner = activeRoom?.trip_id && (tripsBase || []).some((t) => String(t.id) === String(activeRoom.trip_id) && t.creatorId === profile?.user_id); return leavingId === activeRoom?.trip_id ? (isOwner ? 'Eliminando…' : 'Saliendo…') : (isOwner ? 'Eliminar viaje' : 'Abandonar') })()}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  )}
 
       {filtersOpen && (
         <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="filtersTitle">

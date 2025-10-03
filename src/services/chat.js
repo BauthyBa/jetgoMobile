@@ -16,7 +16,7 @@ export async function listRoomsForUser(userId) {
   if (roomIds.length === 0) return []
   const { data: rooms, error: rErr } = await supabase
     .from('chat_rooms')
-    .select('id, name, created_at')
+    .select('id, name, created_at, trip_id')
     .in('id', roomIds)
     .order('created_at', { ascending: false })
   if (rErr) throw rErr

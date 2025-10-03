@@ -1,4 +1,4 @@
-export default function TripCard({ trip, onJoin, joining, onEdit, canEdit }) {
+export default function TripCard({ trip, onJoin, onLeave, joining, leaving, onEdit, canEdit, isMember, isOwner }) {
   if (!trip) return null
   const dateRange = trip.startDate
     ? (trip.endDate ? `${new Date(trip.startDate).toLocaleDateString()} - ${new Date(trip.endDate).toLocaleDateString()}` : new Date(trip.startDate).toLocaleDateString())
@@ -45,7 +45,13 @@ export default function TripCard({ trip, onJoin, joining, onEdit, canEdit }) {
           <button className="btn secondary" type="button" onClick={onEdit}>Editar</button>
         )}
         <div style={{ flex: 1 }} />
-        <button className="btn" type="button" disabled={joining} onClick={onJoin}>{joining ? 'Uniendo…' : 'Unirme'}</button>
+        {isMember ? (
+          <button className="btn secondary" type="button" disabled={leaving} onClick={onLeave}>
+            {isOwner ? (leaving ? 'Eliminando…' : 'Eliminar viaje') : (leaving ? 'Saliendo…' : 'Abandonar')}
+          </button>
+        ) : (
+          <button className="btn" type="button" disabled={joining} onClick={onJoin}>{joining ? 'Uniendo…' : 'Unirme'}</button>
+        )}
       </div>
     </div>
   )

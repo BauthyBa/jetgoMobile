@@ -59,4 +59,9 @@ export async function joinTrip(tripId, userId) {
   return data
 }
 
+export async function leaveTrip(tripId, userId) {
+  const { data } = await api.post('/trips/leave/', { trip_id: tripId, user_id: userId })
+  return data
+}
+
 
