@@ -452,34 +452,30 @@ export default function Dashboard() {
                   <h3 className="page-title" style={{ color: '#60a5fa', margin: 0, textAlign: 'center' }}>Viajes</h3>
                 </div>
                 <div style={{ marginTop: 12 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'center', gap: 8 }}>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-start' }}>
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          setShowMineOnly(false)
-                          setTrips(tripsBase || [])
-                          setVisibleCount(6)
-                        }}
-                      >
-                        Viajes disponibles
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          const mine = (tripsBase || []).filter((t) => t.creatorId && t.creatorId === profile?.user_id)
-                          setTrips(mine)
-                          setShowMineOnly(true)
-                          setVisibleCount(6)
-                        }}
-                      >
-                        Mis viajes
-                      </Button>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                      <Button variant="secondary" onClick={() => { setShowMineOnly(false); setFiltersOpen(true) }}>Filtrar</Button>
-                      <Button onClick={() => setShowCreateModal(true)} className="btn sky">Crear viaje</Button>
-                    </div>
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setShowMineOnly(false)
+                        setTrips(tripsBase || [])
+                        setVisibleCount(6)
+                      }}
+                    >
+                      Viajes disponibles
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        const mine = (tripsBase || []).filter((t) => t.creatorId && t.creatorId === profile?.user_id)
+                        setTrips(mine)
+                        setShowMineOnly(true)
+                        setVisibleCount(6)
+                      }}
+                    >
+                      Mis viajes
+                    </Button>
+                    <Button variant="secondary" onClick={() => { setShowMineOnly(false); setFiltersOpen(true) }}>Filtrar</Button>
+                    <Button onClick={() => setShowCreateModal(true)} className="btn sky">Crear viaje</Button>
                   </div>
                   {trips.length === 0 && <p className="muted" style={{ marginTop: 12, textAlign: 'center' }}>No hay viajes que coincidan.</p>}
                   {(() => { const list = showMineOnly ? trips : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id)); return list.length > 0 })() && (
