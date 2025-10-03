@@ -454,95 +454,100 @@ export default function Dashboard() {
                   </h3>
                 </div>
                 <div style={{ marginTop: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          setShowMineOnly(false)
-                          setTrips(tripsBase || [])
-                          setVisibleCount(6)
-                        }}
-                      >
-                        Viajes disponibles
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          const mine = (tripsBase || []).filter((t) => t.creatorId && t.creatorId === profile?.user_id)
-                          setTrips(mine)
-                          setShowMineOnly(true)
-                          setVisibleCount(6)
-                        }}
-                      >
-                        Mis viajes
-                      </Button>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <Button variant="secondary" onClick={() => { setShowMineOnly(false); setFiltersOpen(true) }}>Filtrar</Button>
-                      <Button onClick={() => setShowCreateModal(true)} className="btn sky">Crear viaje</Button>
-                    </div>
-                  </div>
                   {trips.length === 0 && <p className="muted" style={{ marginTop: 12, textAlign: 'center' }}>No hay viajes que coincidan.</p>}
                   {(() => { const list = showMineOnly ? trips : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id)); return list.length > 0 })() && (
-                    <div style={{ marginTop: 12 }}>
-                      <TripGrid
-                        trips={(showMineOnly ? trips : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id))).slice(0, visibleCount)}
-                        joiningId={joiningId}
-                        leavingId={leavingId}
-                        onJoin={async (t) => {
-                          try {
-                            if (!profile?.user_id) throw new Error('Sin usuario')
-                            setJoiningId(t.id)
-                            const data = await joinTrip(t.id, profile.user_id)
-                            if (data?.ok !== false) {
-                              setJoinDialog({ open: true, title: '¡Te uniste al viaje!', message: 'Podés ver el chat del grupo o seguir explorando.' })
-                              const r = await listRoomsForUser(profile.user_id)
-                              setRooms(r)
-                            } else {
-                              alert(data?.error || 'No se pudo unir al viaje')
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                      {/* Botones del lado izquierdo */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 'fit-content' }}>
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            setShowMineOnly(false)
+                            setTrips(tripsBase || [])
+                            setVisibleCount(6)
+                          }}
+                        >
+                          Viajes disponibles
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            const mine = (tripsBase || []).filter((t) => t.creatorId && t.creatorId === profile?.user_id)
+                            setTrips(mine)
+                            setShowMineOnly(true)
+                            setVisibleCount(6)
+                          }}
+                        >
+                          Mis viajes
+                        </Button>
+                      </div>
+                      
+                      {/* Grid de viajes */}
+                      <div style={{ flex: 1 }}>
+                        <TripGrid
+                          trips={(showMineOnly ? trips : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id))).slice(0, visibleCount)}
+                          joiningId={joiningId}
+                          leavingId={leavingId}
+                          onJoin={async (t) => {
+                            try {
+                              if (!profile?.user_id) throw new Error('Sin usuario')
+                              setJoiningId(t.id)
+                              const data = await joinTrip(t.id, profile.user_id)
+                              if (data?.ok !== false) {
+                                setJoinDialog({ open: true, title: '¡Te uniste al viaje!', message: 'Podés ver el chat del grupo o seguir explorando.' })
+                                const r = await listRoomsForUser(profile.user_id)
+                                setRooms(r)
+                              } else {
+                                alert(data?.error || 'No se pudo unir al viaje')
+                              }
+                            } catch (e) {
+                              alert(e?.message || 'Error al unirse')
+                            } finally {
+                              setJoiningId(null)
                             }
-                          } catch (e) {
-                            alert(e?.message || 'Error al unirse')
-                          } finally {
-                            setJoiningId(null)
-                          }
-                        }}
-                        onLeave={async (t) => {
-                          try {
-                            if (!profile?.user_id) throw new Error('Sin usuario')
-                            const confirmMsg = (t.creatorId && t.creatorId === profile.user_id)
-                              ? 'Sos el organizador. Se eliminará el viaje y su chat para todos. ¿Continuar?'
-                              : '¿Seguro que querés abandonar este viaje?'
-                            if (!confirm(confirmMsg)) return
-                            setLeavingId(t.id)
-                            const data = await leaveTrip(t.id, profile.user_id)
-                            if (data?.ok !== false) {
-                              await loadTrips()
-                              // refrescar salas de chat por si cambió membresía o se eliminó
-                              try { const r = await listRoomsForUser(profile.user_id); setRooms(r) } catch {}
-                              setJoinDialog({ open: true, title: (t.creatorId && t.creatorId === profile.user_id) ? 'Viaje eliminado' : 'Saliste del viaje', message: (t.creatorId && t.creatorId === profile.user_id) ? 'Se eliminó el viaje y su chat.' : 'Ya no sos parte del viaje.' })
-                            } else {
-                              alert(data?.error || 'No se pudo abandonar/eliminar el viaje')
+                          }}
+                          onLeave={async (t) => {
+                            try {
+                              if (!profile?.user_id) throw new Error('Sin usuario')
+                              const confirmMsg = (t.creatorId && t.creatorId === profile.user_id)
+                                ? 'Sos el organizador. Se eliminará el viaje y su chat para todos. ¿Continuar?'
+                                : '¿Seguro que querés abandonar este viaje?'
+                              if (!confirm(confirmMsg)) return
+                              setLeavingId(t.id)
+                              const data = await leaveTrip(t.id, profile.user_id)
+                              if (data?.ok !== false) {
+                                await loadTrips()
+                                // refrescar salas de chat por si cambió membresía o se eliminó
+                                try { const r = await listRoomsForUser(profile.user_id); setRooms(r) } catch {}
+                                setJoinDialog({ open: true, title: (t.creatorId && t.creatorId === profile.user_id) ? 'Viaje eliminado' : 'Saliste del viaje', message: (t.creatorId && t.creatorId === profile.user_id) ? 'Se eliminó el viaje y su chat.' : 'Ya no sos parte del viaje.' })
+                              } else {
+                                alert(data?.error || 'No se pudo abandonar/eliminar el viaje')
+                              }
+                            } catch (e) {
+                              alert(e?.message || 'Error al abandonar/eliminar')
+                            } finally {
+                              setLeavingId(null)
                             }
-                          } catch (e) {
-                            alert(e?.message || 'Error al abandonar/eliminar')
-                          } finally {
-                            setLeavingId(null)
-                          }
-                        }}
-                        onEdit={(t) => { setEditTripModal({ open: true, data: t }) }}
-                        canEdit={(t) => t.creatorId && t.creatorId === profile?.user_id}
-                        isMemberFn={(t) => {
-                          try { return Array.isArray(rooms) && rooms.some((r) => String(r?.trip_id) === String(t.id)) } catch { return false }
-                        }}
-                        isOwnerFn={(t) => t.creatorId && t.creatorId === profile?.user_id}
-                      />
-                      {visibleCount < (showMineOnly ? trips.length : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id))).length && (
-                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
-                          <Button onClick={() => setVisibleCount((v) => v + 6)}>Cargar más</Button>
-                        </div>
-                      )}
+                          }}
+                          onEdit={(t) => { setEditTripModal({ open: true, data: t }) }}
+                          canEdit={(t) => t.creatorId && t.creatorId === profile?.user_id}
+                          isMemberFn={(t) => {
+                            try { return Array.isArray(rooms) && rooms.some((r) => String(r?.trip_id) === String(t.id)) } catch { return false }
+                          }}
+                          isOwnerFn={(t) => t.creatorId && t.creatorId === profile?.user_id}
+                        />
+                      </div>
+                      
+                      {/* Botones del lado derecho */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 'fit-content' }}>
+                        <Button variant="secondary" onClick={() => { setShowMineOnly(false); setFiltersOpen(true) }}>Filtrar</Button>
+                        <Button onClick={() => setShowCreateModal(true)} className="btn sky">Crear viaje</Button>
+                      </div>
+                    </div>
+                  )}
+                  {(() => { const list = showMineOnly ? trips : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id)); return list.length > 0 })() && visibleCount < (showMineOnly ? trips.length : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id))).length && (
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
+                      <Button onClick={() => setVisibleCount((v) => v + 6)}>Cargar más</Button>
                     </div>
                   )}
                 </div>
