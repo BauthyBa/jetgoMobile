@@ -1,6 +1,7 @@
 {
   "version": 2,
   "routes": [
+    { "src": "/terms.html", "dest": "/terms.html", "headers": { "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400" } },
     { "src": "/(.*)\\.(js|css|map|svg|png|jpg|jpeg|gif|ico|txt|json)", "headers": { "Cache-Control": "public, max-age=31536000, immutable" } },
     { "src": "/(.*)", "dest": "/index.html" }
   ]

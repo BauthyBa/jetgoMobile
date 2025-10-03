@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import { registerUser } from '../services/api'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { DecodeHintType, BarcodeFormat } from '@zxing/library'
@@ -38,6 +38,43 @@ export default function Register({ embedded = false }) {
   const [termsReadyToAccept, setTermsReadyToAccept] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
   const termsScrollRef = useRef(null)
+  const termsHtmlRef = useRef('')
+
+  const loadTerms = useCallback(async () => {
+    if (termsHtmlRef.current && termsHtmlRef.current.length > 0) return termsHtmlRef.current
+    try {
+      const cached = sessionStorage.getItem('terms_html')
+      if (cached) {
+        termsHtmlRef.current = cached
+        setTermsHtml(cached)
+        return cached
+      }
+    } catch {}
+    try {
+      const res = await fetch('/terms.html', { cache: 'force-cache' })
+      const html = await res.text()
+      termsHtmlRef.current = html
+      setTermsHtml(html)
+      try { sessionStorage.setItem('terms_html', html) } catch {}
+      return html
+    } catch {
+      const fallback = '<h3>Términos</h3><p>No se pudo cargar el archivo. Intenta nuevamente.</p>'
+      setTermsHtml(fallback)
+      termsHtmlRef.current = fallback
+      return fallback
+    }
+  }, [])
+
+  useEffect(() => {
+    // Pre-cargar términos en segundo plano al ingresar a la página
+    loadTerms()
+  }, [loadTerms])
+
+  const openTerms = async () => {
+    setTermsOpen(true)
+    setTermsReadyToAccept(false)
+    await loadTerms()
+  }
 
   const parseDniPayload = (payload) => {
     let text = payload.replace(/[^\x20-\x7E@/]/g, '')
@@ -359,15 +396,7 @@ export default function Register({ embedded = false }) {
                   checked={termsAccepted}
                   onChange={async (e) => {
                     if (e.target.checked) {
-                      try {
-                        setTermsOpen(true)
-                        setTermsReadyToAccept(false)
-                        const res = await fetch('/terms.html', { cache: 'no-cache' })
-                        const html = await res.text()
-                        setTermsHtml(html)
-                      } catch {
-                        setTermsHtml('<h3>Términos</h3><p>No se pudo cargar el archivo. Intenta nuevamente.</p>')
-                      }
+                      openTerms()
                     } else {
                       setTermsAccepted(false)
                     }
@@ -381,15 +410,7 @@ export default function Register({ embedded = false }) {
                     className="btn secondary"
                     style={{ height: 28, padding: '0 10px' }}
                     onClick={async () => {
-                      try {
-                        setTermsOpen(true)
-                        setTermsReadyToAccept(false)
-                        const res = await fetch('/terms.html', { cache: 'no-cache' })
-                        const html = await res.text()
-                        setTermsHtml(html)
-                      } catch {
-                        setTermsHtml('<h3>Términos</h3><p>No se pudo cargar el archivo. Intenta nuevamente.</p>')
-                      }
+                      openTerms()
                     }}
                   >
                     Términos y Condiciones
