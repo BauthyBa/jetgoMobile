@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { registerUser } from '../services/api'
 import { BrowserMultiFormatReader } from '@zxing/browser'
 import { DecodeHintType, BarcodeFormat } from '@zxing/library'
@@ -33,6 +33,11 @@ export default function Register({ embedded = false }) {
   const backImgRef = useRef(null)
   const [scanStatus, setScanStatus] = useState('idle')
   const [overlay, setOverlay] = useState({ visible: false, message: '' })
+  const [termsOpen, setTermsOpen] = useState(false)
+  const [termsHtml, setTermsHtml] = useState('')
+  const [termsReadyToAccept, setTermsReadyToAccept] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const termsScrollRef = useRef(null)
 
   const parseDniPayload = (payload) => {
     let text = payload.replace(/[^\x20-\x7E@/]/g, '')
@@ -162,6 +167,10 @@ export default function Register({ embedded = false }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!termsAccepted) {
+      setError('Debes aceptar los Términos y Condiciones para continuar')
+      return
+    }
     setLoading(true)
     setError(null)
     setOk(false)
@@ -342,9 +351,26 @@ export default function Register({ embedded = false }) {
                 </div>
               </>
             )}
+            <div className="field" style={{ marginTop: 4 }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span>Acepto los</span>
+                <button type="button" className="btn secondary" style={{ height: 32 }} onClick={async () => {
+                  try {
+                    setTermsOpen(true)
+                    setTermsReadyToAccept(false)
+                    const res = await fetch('/terms.html', { cache: 'no-cache' })
+                    const html = await res.text()
+                    setTermsHtml(html)
+                  } catch {
+                    setTermsHtml('<h3>Términos</h3><p>No se pudo cargar el archivo. Intenta nuevamente.</p>')
+                  }
+                }}>Términos y Condiciones</button>
+                <span className="muted">{termsAccepted ? 'Aceptado' : 'No aceptado'}</span>
+              </label>
+            </div>
             <input type="hidden" name="dni_front_payload" value={form.dni_front_payload} />
             <div className="actions">
-              <button className="btn" type="submit" disabled={loading || scanning}>{googleMode ? (loading || scanning ? 'Verificando…' : 'Verificar DNI') : (loading ? 'Enviando...' : (scanning ? 'Leyendo...' : 'Crear cuenta'))}</button>
+              <button className="btn" type="submit" disabled={loading || scanning || !termsAccepted}>{googleMode ? (loading || scanning ? 'Verificando…' : 'Verificar DNI') : (loading ? 'Enviando...' : (scanning ? 'Leyendo...' : 'Crear cuenta'))}</button>
               <button className="btn secondary" type="button" onClick={() => { setForm({ ...form, first_name: '', last_name: '', document_number: '', sex: 'M', birth_date: '', dni_front_payload: '', dni_image_file: null, dni_image_url: '', dni_back_file: null, dni_back_url: '' }); if (imgRef.current) imgRef.current.src = ''; if (backImgRef.current) backImgRef.current.src = ''; }}>Limpiar</button>
               <span className="muted">{scanning ? 'Procesando imagen...' : ''}</span>
             </div>
@@ -363,6 +389,31 @@ export default function Register({ embedded = false }) {
           <div className="card glass-card">
             <h2 className="page-title">Registro</h2>
             {inner}
+          </div>
+        </div>
+      )}
+      {termsOpen && (
+        <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+          <div className="overlay-box" style={{ maxWidth: 740, width: '90%' }}>
+            <h3 id="termsTitle" style={{ fontWeight: 800, marginBottom: 8 }}>Términos y Condiciones</h3>
+            <div
+              ref={termsScrollRef}
+              onScroll={() => {
+                try {
+                  const el = termsScrollRef.current
+                  if (!el) return
+                  const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 8
+                  if (nearBottom) setTermsReadyToAccept(true)
+                } catch {}
+              }}
+              style={{ maxHeight: '50vh', overflowY: 'auto', padding: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.04)', width: '100%' }}
+              dangerouslySetInnerHTML={{ __html: termsHtml }}
+            />
+            <div className="muted" style={{ fontSize: 12 }}>Desplazate hasta el final para habilitar "Aceptar".</div>
+            <div className="actions" style={{ justifyContent: 'flex-end' }}>
+              <button className="btn secondary" type="button" onClick={() => { setTermsOpen(false) }}>Cancelar</button>
+              <button className="btn" type="button" disabled={!termsReadyToAccept} onClick={() => { setTermsAccepted(true); setTermsOpen(false) }}>Aceptar</button>
+            </div>
           </div>
         </div>
       )}
