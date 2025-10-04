@@ -1,7 +1,10 @@
 {
   "version": 2,
+  "functions": {
+    "api/*.js": { "runtime": "nodejs18.x" }
+  },
   "routes": [
-    { "src": "/api/tripadvisor", "dest": "/api/tripadvisor.js" },
+    { "src": "/api/tripadvisor(?:/)?", "dest": "/api/tripadvisor.js" },
     { "src": "/terms.html", "dest": "/terms.html", "headers": { "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400" } },
     { "src": "/(.*)\\.(js|css|map|svg|png|jpg|jpeg|gif|ico|txt|json)", "headers": { "Cache-Control": "public, max-age=31536000, immutable" } },
     { "src": "/(.*)", "dest": "/index.html" }
