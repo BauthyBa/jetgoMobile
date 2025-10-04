@@ -1,12 +1,29 @@
+function sendJson(res, statusCode, body) {
+	try {
+		if (typeof res.status === 'function' && typeof res.json === 'function') {
+			return res.status(statusCode).json(body)
+		}
+	} catch {}
+	res.statusCode = statusCode
+	try { res.setHeader('Content-Type', 'application/json; charset=utf-8') } catch {}
+	try { res.end(JSON.stringify(body)) } catch {}
+}
+
 export default async function handler(req, res) {
-	// Simple serverless proxy to TripAdvisor Content API
-	// Prevent exposing the API key to the client
-	const apiKey = process.env.TRIPADVISOR_API_KEY;
+    // Simple serverless proxy to TripAdvisor Content API
+    // Prevent exposing the API key to the client
+	const apiKey = process.env.TRIPADVISOR_API_KEY || process.env.VITE_TRIPADVISOR_API_KEY || '1821739E0B4D43DFBD7DD3C133FFD627';
 	if (!apiKey) {
-		return res.status(500).json({ error: 'Missing TRIPADVISOR_API_KEY server env' });
+		return sendJson(res, 500, { error: 'Missing TRIPADVISOR_API_KEY server env' });
 	}
 
-	const { action = 'search', query = '', category = 'attractions', language = 'es', locationId } = req.query || {};
+    // Support both environments: Next/Vercel (req.query) and plain Node (req.url)
+    let parsedQuery = {};
+    try {
+        const u = new URL(req.url, 'http://localhost');
+        parsedQuery = Object.fromEntries(u.searchParams.entries());
+    } catch {}
+    const { action = 'search', query = '', category = 'attractions', language = 'es', locationId } = (req.query || parsedQuery || {});
 
 	try {
 		let url = '';
@@ -14,7 +31,7 @@ export default async function handler(req, res) {
 			case 'search': {
 				const searchQuery = String(query || '').trim();
 				if (!searchQuery) {
-					return res.status(400).json({ error: 'Missing query parameter' });
+					return sendJson(res, 400, { error: 'Missing query parameter' });
 				}
 				const params = new URLSearchParams({
 					key: apiKey,
@@ -28,7 +45,7 @@ export default async function handler(req, res) {
 			}
 			case 'details': {
 				if (!locationId) {
-					return res.status(400).json({ error: 'Missing locationId parameter' });
+					return sendJson(res, 400, { error: 'Missing locationId parameter' });
 				}
 				const params = new URLSearchParams({ key: apiKey, language: String(language || 'es') });
 				url = `https://api.content.tripadvisor.com/api/v1/location/${locationId}/details?${params.toString()}`;
@@ -36,7 +53,7 @@ export default async function handler(req, res) {
 			}
 			case 'photos': {
 				if (!locationId) {
-					return res.status(400).json({ error: 'Missing locationId parameter' });
+					return sendJson(res, 400, { error: 'Missing locationId parameter' });
 				}
 				const params = new URLSearchParams({ key: apiKey, language: String(language || 'es'), limit: '5' });
 				url = `https://api.content.tripadvisor.com/api/v1/location/${locationId}/photos?${params.toString()}`;
@@ -44,27 +61,27 @@ export default async function handler(req, res) {
 			}
 			case 'reviews': {
 				if (!locationId) {
-					return res.status(400).json({ error: 'Missing locationId parameter' });
+					return sendJson(res, 400, { error: 'Missing locationId parameter' });
 				}
 				const params = new URLSearchParams({ key: apiKey, language: String(language || 'es'), limit: '5' });
 				url = `https://api.content.tripadvisor.com/api/v1/location/${locationId}/reviews?${params.toString()}`;
 				break;
 			}
 			default:
-				return res.status(400).json({ error: 'Unsupported action' });
+				return sendJson(res, 400, { error: 'Unsupported action' });
 		}
 
 		const response = await fetch(url, { headers: { Accept: 'application/json' } });
 		if (!response.ok) {
 			const text = await response.text();
-			return res.status(response.status).json({ error: 'Upstream error', detail: text });
+			return sendJson(res, response.status, { error: 'Upstream error', detail: text });
 		}
 		const data = await response.json();
 		// Cache for a short time in edge/CDN (if applicable)
-		res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
-		return res.status(200).json(data);
+		try { res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600'); } catch {}
+		return sendJson(res, 200, data);
 	} catch (err) {
-		return res.status(500).json({ error: 'Proxy failure', detail: String(err?.message || err) });
+		return sendJson(res, 500, { error: 'Proxy failure', detail: String(err?.message || err) });
 	}
 }
 
