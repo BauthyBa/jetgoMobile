@@ -72,6 +72,55 @@ export default function Dashboard() {
   const [splitSelected, setSplitSelected] = useState([])
   const [joinDialog, setJoinDialog] = useState({ open: false, title: '', message: '' })
 
+  // Autocomplete state for country and cities
+  const [isoCountry, setIsoCountry] = useState('')
+  const [countryQuery, setCountryQuery] = useState('')
+  const [countrySuggestions, setCountrySuggestions] = useState([])
+  const [originQuery, setOriginQuery] = useState('')
+  const [originSuggestions, setOriginSuggestions] = useState([])
+  const [destinationQuery, setDestinationQuery] = useState('')
+  const [destinationSuggestions, setDestinationSuggestions] = useState([])
+
+  // Simple debounce helper
+  function debounce(fn, delay) {
+    let t
+    return (...args) => {
+      clearTimeout(t)
+      t = setTimeout(() => fn(...args), delay)
+    }
+  }
+
+  // Fetch countries from Nominatim
+  const fetchCountries = useState(() => debounce(async (q) => {
+    try {
+      if (!q || q.length < 3) { setCountrySuggestions([]); return }
+      const url = `https://nominatim.openstreetmap.org/search?country=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5`
+      const res = await fetch(url, { headers: { 'Accept-Language': 'es' } })
+      const data = await res.json()
+      setCountrySuggestions(Array.isArray(data) ? data : [])
+    } catch { setCountrySuggestions([]) }
+  }, 350))[0]
+
+  // Fetch cities filtered by isoCountry
+  const fetchCities = useState(() => debounce(async (q, which) => {
+    try {
+      if (!q || q.length < 3) {
+        if (which === 'origin') setOriginSuggestions([])
+        else setDestinationSuggestions([])
+        return
+      }
+      let url = `https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5`
+      if (isoCountry) url += `&countrycodes=${encodeURIComponent(isoCountry)}`
+      const res = await fetch(url, { headers: { 'Accept-Language': 'es' } })
+      const data = await res.json()
+      if (which === 'origin') setOriginSuggestions(Array.isArray(data) ? data : [])
+      else setDestinationSuggestions(Array.isArray(data) ? data : [])
+    } catch {
+      if (which === 'origin') setOriginSuggestions([])
+      else setDestinationSuggestions([])
+    }
+  }, 350))[0]
+
   useEffect(() => {
     let mounted = true
     async function load() {
@@ -455,96 +504,94 @@ export default function Dashboard() {
                 </div>
                 <div style={{ marginTop: 12 }}>
                   {trips.length === 0 && <p className="muted" style={{ marginTop: 12, textAlign: 'center' }}>No hay viajes que coincidan.</p>}
-                  {(() => { const list = showMineOnly ? trips : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id)); return list.length > 0 })() && (
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                      {/* Botones del lado izquierdo */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 'fit-content' }}>
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            setShowMineOnly(false)
-                            setTrips(tripsBase || [])
-                            setVisibleCount(6)
-                          }}
-                        >
-                          Viajes disponibles
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            const mine = (tripsBase || []).filter((t) => t.creatorId && t.creatorId === profile?.user_id)
-                            setTrips(mine)
-                            setShowMineOnly(true)
-                            setVisibleCount(6)
-                          }}
-                        >
-                          Mis viajes
-                        </Button>
-                      </div>
-                      
-                      {/* Grid de viajes */}
-                      <div style={{ flex: 1 }}>
-                        <TripGrid
-                          trips={(showMineOnly ? trips : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id))).slice(0, visibleCount)}
-                          joiningId={joiningId}
-                          leavingId={leavingId}
-                          onJoin={async (t) => {
-                            try {
-                              if (!profile?.user_id) throw new Error('Sin usuario')
-                              setJoiningId(t.id)
-                              const data = await joinTrip(t.id, profile.user_id)
-                              if (data?.ok !== false) {
-                                setJoinDialog({ open: true, title: '¡Te uniste al viaje!', message: 'Podés ver el chat del grupo o seguir explorando.' })
-                                const r = await listRoomsForUser(profile.user_id)
-                                setRooms(r)
-                              } else {
-                                alert(data?.error || 'No se pudo unir al viaje')
-                              }
-                            } catch (e) {
-                              alert(e?.message || 'Error al unirse')
-                            } finally {
-                              setJoiningId(null)
-                            }
-                          }}
-                          onLeave={async (t) => {
-                            try {
-                              if (!profile?.user_id) throw new Error('Sin usuario')
-                              const confirmMsg = (t.creatorId && t.creatorId === profile.user_id)
-                                ? 'Sos el organizador. Se eliminará el viaje y su chat para todos. ¿Continuar?'
-                                : '¿Seguro que querés abandonar este viaje?'
-                              if (!confirm(confirmMsg)) return
-                              setLeavingId(t.id)
-                              const data = await leaveTrip(t.id, profile.user_id)
-                              if (data?.ok !== false) {
-                                await loadTrips()
-                                // refrescar salas de chat por si cambió membresía o se eliminó
-                                try { const r = await listRoomsForUser(profile.user_id); setRooms(r) } catch {}
-                                setJoinDialog({ open: true, title: (t.creatorId && t.creatorId === profile.user_id) ? 'Viaje eliminado' : 'Saliste del viaje', message: (t.creatorId && t.creatorId === profile.user_id) ? 'Se eliminó el viaje y su chat.' : 'Ya no sos parte del viaje.' })
-                              } else {
-                                alert(data?.error || 'No se pudo abandonar/eliminar el viaje')
-                              }
-                            } catch (e) {
-                              alert(e?.message || 'Error al abandonar/eliminar')
-                            } finally {
-                              setLeavingId(null)
-                            }
-                          }}
-                          onEdit={(t) => { setEditTripModal({ open: true, data: t }) }}
-                          canEdit={(t) => t.creatorId && t.creatorId === profile?.user_id}
-                          isMemberFn={(t) => {
-                            try { return Array.isArray(rooms) && rooms.some((r) => String(r?.trip_id) === String(t.id)) } catch { return false }
-                          }}
-                          isOwnerFn={(t) => t.creatorId && t.creatorId === profile?.user_id}
-                        />
-                      </div>
-                      
-                      {/* Botones del lado derecho */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 'fit-content' }}>
-                        <Button variant="secondary" onClick={() => { setShowMineOnly(false); setFiltersOpen(true) }}>Filtrar</Button>
-                        <Button onClick={() => setShowCreateModal(true)} className="btn sky">Crear viaje</Button>
-                      </div>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                    {/* Botones del lado izquierdo */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 'fit-content' }}>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setShowMineOnly(false)
+                          setTrips(tripsBase || [])
+                          setVisibleCount(6)
+                        }}
+                      >
+                        Viajes disponibles
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          const mine = (tripsBase || []).filter((t) => t.creatorId && t.creatorId === profile?.user_id)
+                          setTrips(mine)
+                          setShowMineOnly(true)
+                          setVisibleCount(6)
+                        }}
+                      >
+                        Mis viajes
+                      </Button>
                     </div>
-                  )}
+                    
+                    {/* Grid de viajes */}
+                    <div style={{ flex: 1 }}>
+                      <TripGrid
+                        trips={(showMineOnly ? trips : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id))).slice(0, visibleCount)}
+                        joiningId={joiningId}
+                        leavingId={leavingId}
+                        onJoin={async (t) => {
+                          try {
+                            if (!profile?.user_id) throw new Error('Sin usuario')
+                            setJoiningId(t.id)
+                            const data = await joinTrip(t.id, profile.user_id)
+                            if (data?.ok !== false) {
+                              setJoinDialog({ open: true, title: '¡Te uniste al viaje!', message: 'Podés ver el chat del grupo o seguir explorando.' })
+                              const r = await listRoomsForUser(profile.user_id)
+                              setRooms(r)
+                            } else {
+                              alert(data?.error || 'No se pudo unir al viaje')
+                            }
+                          } catch (e) {
+                            alert(e?.message || 'Error al unirse')
+                          } finally {
+                            setJoiningId(null)
+                          }
+                        }}
+                        onLeave={async (t) => {
+                          try {
+                            if (!profile?.user_id) throw new Error('Sin usuario')
+                            const confirmMsg = (t.creatorId && t.creatorId === profile.user_id)
+                              ? 'Sos el organizador. Se eliminará el viaje y su chat para todos. ¿Continuar?'
+                              : '¿Seguro que querés abandonar este viaje?'
+                            if (!confirm(confirmMsg)) return
+                            setLeavingId(t.id)
+                            const data = await leaveTrip(t.id, profile.user_id)
+                            if (data?.ok !== false) {
+                              await loadTrips()
+                              // refrescar salas de chat por si cambió membresía o se eliminó
+                              try { const r = await listRoomsForUser(profile.user_id); setRooms(r) } catch {}
+                              setJoinDialog({ open: true, title: (t.creatorId && t.creatorId === profile.user_id) ? 'Viaje eliminado' : 'Saliste del viaje', message: (t.creatorId && t.creatorId === profile.user_id) ? 'Se eliminó el viaje y su chat.' : 'Ya no sos parte del viaje.' })
+                            } else {
+                              alert(data?.error || 'No se pudo abandonar/eliminar el viaje')
+                            }
+                          } catch (e) {
+                            alert(e?.message || 'Error al abandonar/eliminar')
+                          } finally {
+                            setLeavingId(null)
+                          }
+                        }}
+                        onEdit={(t) => { setEditTripModal({ open: true, data: t }) }}
+                        canEdit={(t) => t.creatorId && t.creatorId === profile?.user_id}
+                        isMemberFn={(t) => {
+                          try { return Array.isArray(rooms) && rooms.some((r) => String(r?.trip_id) === String(t.id)) } catch { return false }
+                        }}
+                        isOwnerFn={(t) => t.creatorId && t.creatorId === profile?.user_id}
+                      />
+                    </div>
+                    
+                    {/* Botones del lado derecho */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 'fit-content' }}>
+                      <Button variant="secondary" onClick={() => { setShowMineOnly(false); setFiltersOpen(true) }}>Filtrar</Button>
+                      <Button onClick={() => setShowCreateModal(true)} className="btn sky">Crear viaje</Button>
+                    </div>
+                  </div>
                   {(() => { const list = showMineOnly ? trips : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id)); return list.length > 0 })() && visibleCount < (showMineOnly ? trips.length : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id))).length && (
                     <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
                       <Button onClick={() => setVisibleCount((v) => v + 6)}>Cargar más</Button>
@@ -776,18 +823,78 @@ export default function Dashboard() {
           <div className="overlay-box" style={{ maxWidth: 840, width: '95%' }}>
             <h3 id="createTripTitle" className="page-title" style={{ margin: 0, color: '#60a5fa' }}>Crear viaje</h3>
             <div className="glass-card" style={{ padding: 16, marginTop: 8, background: 'linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, position: 'relative' }}>
                 <div className="field">
                   <label>Nombre</label>
                   <input value={trip.name} onChange={(e) => setTrip({ ...trip, name: e.target.value })} placeholder="Ej: Bariloche 2025" style={{ color: '#e5e7eb' }} />
                 </div>
-                <div className="field">
+                <div className="field" style={{ position: 'relative' }}>
                   <label>Origen</label>
-                  <input value={trip.origin} onChange={(e) => setTrip({ ...trip, origin: e.target.value })} placeholder="Ciudad de origen" style={{ color: '#e5e7eb' }} />
+                  <input
+                    value={trip.origin}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setTrip({ ...trip, origin: v })
+                      setOriginQuery(v)
+                      fetchCities(v, 'origin')
+                    }}
+                    placeholder="Ciudad de origen"
+                    style={{ color: '#e5e7eb' }}
+                    autoComplete="off"
+                  />
+                  {originSuggestions.length > 0 && (
+                    <ul style={{ listStyle: 'none', margin: 0, padding: 0, border: '1px solid #334155', background: '#0f172a', position: 'absolute', zIndex: 20, width: '100%', maxHeight: 180, overflow: 'auto' }}>
+                      {originSuggestions.map((item, idx) => (
+                        <li
+                          key={`o_${idx}_${item.place_id}`}
+                          style={{ padding: 6, cursor: 'pointer' }}
+                          onClick={() => {
+                            setTrip((t) => ({ ...t, origin: item.display_name }))
+                            setOriginQuery(item.display_name)
+                            setOriginSuggestions([])
+                          }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { setTrip((t) => ({ ...t, origin: item.display_name })); setOriginSuggestions([]) } }}
+                          tabIndex={0}
+                        >
+                          {item.display_name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-                <div className="field">
+                <div className="field" style={{ position: 'relative' }}>
                   <label>Destino</label>
-                  <input value={trip.destination} onChange={(e) => setTrip({ ...trip, destination: e.target.value })} placeholder="Ciudad de destino" style={{ color: '#e5e7eb' }} />
+                  <input
+                    value={trip.destination}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setTrip({ ...trip, destination: v })
+                      setDestinationQuery(v)
+                      fetchCities(v, 'destination')
+                    }}
+                    placeholder="Ciudad de destino"
+                    style={{ color: '#e5e7eb' }}
+                    autoComplete="off"
+                  />
+                  {destinationSuggestions.length > 0 && (
+                    <ul style={{ listStyle: 'none', margin: 0, padding: 0, border: '1px solid #334155', background: '#0f172a', position: 'absolute', zIndex: 20, width: '100%', maxHeight: 180, overflow: 'auto' }}>
+                      {destinationSuggestions.map((item, idx) => (
+                        <li
+                          key={`d_${idx}_${item.place_id}`}
+                          style={{ padding: 6, cursor: 'pointer' }}
+                          onClick={() => {
+                            setTrip((t) => ({ ...t, destination: item.display_name }))
+                            setDestinationQuery(item.display_name)
+                            setDestinationSuggestions([])
+                          }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { setTrip((t) => ({ ...t, destination: item.display_name })); setDestinationSuggestions([]) } }}
+                          tabIndex={0}
+                        >
+                          {item.display_name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 <div className="field">
                   <label>Desde</label>
@@ -833,9 +940,56 @@ export default function Dashboard() {
                     <option value="any">Cualquiera</option>
                   </select>
                 </div>
-                <div className="field">
+                <div className="field" style={{ position: 'relative' }}>
                   <label>País</label>
-                  <input value={trip.country} onChange={(e) => setTrip({ ...trip, country: e.target.value })} placeholder="Argentina" style={{ color: '#e5e7eb' }} />
+                  <input
+                    value={trip.country}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setTrip({ ...trip, country: v })
+                      setCountryQuery(v)
+                      setIsoCountry('')
+                      fetchCountries(v)
+                    }}
+                    placeholder="Argentina"
+                    style={{ color: '#e5e7eb' }}
+                    autoComplete="off"
+                  />
+                  {countrySuggestions.length > 0 && (
+                    <ul style={{ listStyle: 'none', margin: 0, padding: 0, border: '1px solid #334155', background: '#0f172a', position: 'absolute', zIndex: 20, width: '100%', maxHeight: 180, overflow: 'auto' }}>
+                      {countrySuggestions.map((item, idx) => (
+                        <li
+                          key={`c_${idx}_${item.place_id}`}
+                          style={{ padding: 6, cursor: 'pointer' }}
+                          onClick={() => {
+                            const label = item.display_name
+                            const code = (item.address && item.address.country_code ? String(item.address.country_code).toUpperCase() : '')
+                            setTrip((t) => ({ ...t, country: label }))
+                            setIsoCountry(code)
+                            setCountrySuggestions([])
+                            // Clear city suggestions upon choosing country
+                            setOriginSuggestions([])
+                            setDestinationSuggestions([])
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const label = item.display_name
+                              const code = (item.address && item.address.country_code ? String(item.address.country_code).toUpperCase() : '')
+                              setTrip((t) => ({ ...t, country: label }))
+                              setIsoCountry(code)
+                              setCountrySuggestions([])
+                            }
+                          }}
+                          tabIndex={0}
+                        >
+                          {item.display_name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {isoCountry && (
+                    <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>Código país: {isoCountry}</div>
+                  )}
                 </div>
               </div>
               <div className="actions" style={{ justifyContent: 'flex-end' }}>
@@ -843,6 +997,20 @@ export default function Dashboard() {
                 <Button
                   onClick={async () => {
                     try {
+                      // Try to fetch a destination cover image from Unsplash
+                      let imageUrl = null
+                      try {
+                        const qParts = [trip.destination || '', trip.country || ''].filter(Boolean)
+                        const q = qParts.join(' ').trim()
+                        if (q.length > 0) {
+                          const resp = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&client_id=${encodeURIComponent('3mRQnmdKlbPt4Im-miwXXfGuNIdPAk4OE3tf4G75nG0')}`)
+                          if (resp.ok) {
+                            const json = await resp.json()
+                            const first = (Array.isArray(json?.results) ? json.results : [])[0]
+                            imageUrl = first?.urls?.regular || first?.urls?.small || null
+                          }
+                        }
+                      } catch {}
                       const payload = {
                         name: trip.name,
                         origin: trip.origin,
@@ -855,6 +1023,7 @@ export default function Dashboard() {
                         room_type: trip.roomType || null,
                         season: trip.season || null,
                         country: trip.country || null,
+                        image_url: imageUrl || null,
                         creator_id: profile?.user_id || null,
                       }
                       const { data } = await api.post('/trips/create/', payload)
