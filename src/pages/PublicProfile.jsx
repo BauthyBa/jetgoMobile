@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import GlassCard from '@/components/GlassCard'
 import ProfileCard from '@/components/ProfileCard'
+import ReviewsSection from '@/components/ReviewsSection'
 import DashboardLayout from '@/components/DashboardLayout'
 import { supabase } from '@/services/supabase'
 
@@ -10,6 +11,8 @@ export default function PublicProfile() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [userRow, setUserRow] = useState(null)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [isOwnProfile, setIsOwnProfile] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -17,6 +20,13 @@ export default function PublicProfile() {
       setLoading(true)
       setError('')
       try {
+        // Obtener usuario actual
+        const { data: { user } } = await supabase.auth.getUser()
+        if (mounted) {
+          setCurrentUser(user)
+          setIsOwnProfile(user?.id === userId)
+        }
+
         // Cargar datos públicos básicos desde la tabla User (nombre, apellido, etc.)
         const { data, error } = await supabase
           .from('User')
@@ -79,7 +89,9 @@ export default function PublicProfile() {
     <DashboardLayout>
       <div className="p-6 sm:p-8 text-white" style={{ display: 'grid', gap: 16 }}>
         <div className="glass-card" style={{ padding: 16 }}>
-          <h3 className="page-title" style={{ margin: 0, color: '#60a5fa' }}>Perfil</h3>
+          <h3 className="page-title" style={{ margin: 0, color: '#60a5fa' }}>
+            {isOwnProfile ? 'Mi Perfil' : 'Perfil'}
+          </h3>
         </div>
         <ProfileCard profile={{
           user_id: userId,
@@ -92,7 +104,13 @@ export default function PublicProfile() {
             interests: (interestsPublic.length > 0 ? interestsPublic : interests),
             favorite_travel_styles: (favsPublic.length > 0 ? favsPublic : favs),
           },
-        }} readOnly />
+        }} readOnly={!isOwnProfile} />
+        
+        {/* Sección de reseñas */}
+        <ReviewsSection 
+          userId={userId} 
+          isOwnProfile={isOwnProfile}
+        />
       </div>
     </DashboardLayout>
   )

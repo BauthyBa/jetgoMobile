@@ -83,4 +83,20 @@ export async function upsertProfileToBackend(payload) {
   return data
 }
 
+// Funciones para reseñas
+export async function createReview(payload) {
+  const { data } = await apiPublic.post('/reviews/create/', payload)
+  return data
+}
+
+export async function getUserReviews(userId) {
+  const { data } = await apiPublic.get(`/reviews/user/?user_id=${userId}`)
+  return data
+}
+
+export async function getUserProfile(userId) {
+  const { data } = await apiPublic.get(`/profile/user/?user_id=${userId}`)
+  return data
+}
+
 
