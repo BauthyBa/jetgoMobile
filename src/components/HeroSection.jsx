@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, MapPin, Calendar } from 'lucide-react'
+import Reveal from '@/components/Reveal'
 import ColorBar from '@/components/ColorBar'
 import { searchLocations } from '@/services/tripadvisor'
 
@@ -28,13 +29,24 @@ export default function HeroSection() {
   }
 
   return (
-    <section className="relative min-h-[88vh] flex items-center bg-gradient-to-b from-slate-900 to-slate-800 pt-24">
+    <section className="relative min-h-[88vh] flex items-center bg-gradient-to-b from-slate-900 to-slate-800 pt-24 overflow-hidden">
+      <div aria-hidden className="absolute inset-0 z-[1] pointer-events-none">
+        <img src="/hero-landmarks.jpg" alt="" className="w-full h-full object-cover opacity-60 blur-[3px] scale-105" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/60 via-slate-900/35 to-slate-900/75" />
+      </div>
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white w-full">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-bold mb-4 leading-tight">Viaja más,<br /><span className="text-emerald-400">gasta menos</span></h1>
-          <div className="flex justify-center mb-6"><ColorBar className="w-56 rounded-full" /></div>
-          <p className="text-xl md:text-2xl mb-12 max-w-2xl mx-auto text-white/90">Conecta con personas que van a tu mismo destino y comparte el viaje</p>
+          <Reveal>
+            <h1 className="text-5xl md:text-7xl font-bold mb-4 leading-tight">Viaja más,<br /><span className="text-emerald-400">gasta menos</span></h1>
+          </Reveal>
+          <Reveal delay={100}>
+            <div className="flex justify-center mb-6"><ColorBar className="w-56 rounded-full" /></div>
+          </Reveal>
+          <Reveal delay={150}>
+            <p className="text-xl md:text-2xl mb-12 max-w-2xl mx-auto text-white/90">Conecta con personas que van a tu mismo destino y comparte el viaje</p>
+          </Reveal>
         </div>
+        <Reveal delay={200}>
         <div className="bg-slate-800/60 backdrop-blur-md rounded-2xl p-6 md:p-8 max-w-5xl mx-auto mb-8 border border-slate-700/60 shadow-strong">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="md:col-span-1">
@@ -110,9 +122,12 @@ export default function HeroSection() {
             </div>
           )}
         </div>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" variant="outline" className="border-slate-500 text-white bg-transparent hover:bg-slate-700 hover:text-white ring-1 ring-slate-400/20">Publicar un viaje</Button>
-        </div>
+        </Reveal>
+        <Reveal delay={250}>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" variant="outline" className="border-slate-500 text-white bg-transparent hover:bg-slate-700 hover:text-white ring-1 ring-slate-400/20">Publicar un viaje</Button>
+          </div>
+        </Reveal>
       </div>
     </section>
   )

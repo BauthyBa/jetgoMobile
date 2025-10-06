@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { getSession, supabase } from '../services/supabase'
 import Navigation from '@/components/Navigation'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function Layout() {
   const [loggedIn, setLoggedIn] = useState(false)
@@ -33,6 +34,9 @@ export default function Layout() {
               <img src="/jetgo.png?v=2" alt="" style={{ height: '1.1em', width: 'auto', verticalAlign: 'middle', marginRight: 8 }} />
               JetGo
             </Link>
+            <div style={{ marginLeft: 'auto' }}>
+              <ThemeToggle />
+            </div>
           </div>
         </header>
       )}

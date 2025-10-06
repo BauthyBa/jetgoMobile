@@ -21,9 +21,9 @@ export default function HowItWorks() {
           {steps.map((s, i) => (
             <div key={i} className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 text-center border border-slate-700/50 shadow-2xl hover:-translate-y-1 transition-all">
               <div className="relative mb-8">
-                <div className="w-24 h-24 mx-auto mb-4 rounded-full p-1 bg-gradient-to-r from-blue-600 to-blue-500">
-                  <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center">
-                    <img src={s.icon} alt={s.title} className="w-12 h-12 object-contain" />
+                <div className="w-28 h-28 mx-auto mb-4 rounded-full p-1.5 bg-gradient-to-r from-blue-600 to-blue-500">
+                  <div className="w-full h-full rounded-full bg-white dark:bg-white flex items-center justify-center">
+                    <img src={s.icon} alt={s.title} className="w-16 h-16 object-contain" />
                   </div>
                 </div>
                 <div className="absolute -top-2 -right-2 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white font-bold">{i + 1}</div>

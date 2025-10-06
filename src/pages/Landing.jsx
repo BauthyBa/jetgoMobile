@@ -5,17 +5,28 @@ import HowItWorks from '@/components/HowItWorks'
 import Testimonials from '@/components/Testimonials'
 import CTA from '@/components/CTA'
 import TripadvisorShowcase from '@/components/TripadvisorShowcase'
+import Reveal from '@/components/Reveal'
 
 export default function Landing() {
   return (
-    <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+    <div className="min-h-screen text-foreground bg-gradient-hero">
       <Navigation />
       <HeroSection />
-      <HowItWorks />
-      <Benefits />
-      <TripadvisorShowcase />
-      <Testimonials />
-      <CTA />
+      <Reveal>
+        <HowItWorks />
+      </Reveal>
+      <Reveal delay={100}>
+        <Benefits />
+      </Reveal>
+      <Reveal delay={150}>
+        <TripadvisorShowcase />
+      </Reveal>
+      <Reveal delay={200}>
+        <Testimonials />
+      </Reveal>
+      <Reveal delay={250}>
+        <CTA />
+      </Reveal>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { getSession, supabase } from '@/services/supabase'
 import ColorBar from '@/components/ColorBar'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function Navigation() {
   const [loggedIn, setLoggedIn] = useState(false)
@@ -15,7 +16,7 @@ export default function Navigation() {
     return () => { mounted = false; subscription.unsubscribe() }
   }, [])
   return (
-    <nav className="fixed top-0 w-full z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700/50">
+    <nav className="fixed top-0 w-full z-50 glass-nav">
       <ColorBar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
@@ -29,6 +30,7 @@ export default function Navigation() {
             <a href="#testimonios" className="text-slate-200 hover:text-emerald-400 transition-colors font-medium">Testimonios</a>
           </div>
           <div className="flex items-center space-x-4">
+            <ThemeToggle />
             {loggedIn ? (
               <Link to="/dashboard"><Button className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white">Ir al dashboard</Button></Link>
             ) : (

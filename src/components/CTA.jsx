@@ -25,20 +25,20 @@ export default function CTA() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
             {loggedIn ? (
               <Link to="/dashboard">
-                <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-8 py-4 text-lg">
+                <Button size="lg" className="bg-gradient-to-r from-blue-400 to-white hover:from-blue-300 hover:to-white text-slate-900 border border-blue-200 px-8 py-4 text-lg dark:from-blue-600 dark:to-blue-500 dark:hover:from-blue-500 dark:hover:to-blue-400 dark:text-white dark:border-transparent">
                   Ir al dashboard
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
             ) : (
               <Link to="/login">
-                <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white px-8 py-4 text-lg">
+                <Button size="lg" className="bg-gradient-to-r from-blue-400 to-white hover:from-blue-300 hover:to-white text-slate-900 border border-blue-200 px-8 py-4 text-lg dark:from-blue-600 dark:to-blue-500 dark:hover:from-blue-500 dark:hover:to-blue-400 dark:text-white dark:border-transparent">
                   Comenzar ahora
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
             )}
-            <Button size="lg" variant="outline" className="border-slate-600 text-white bg-transparent hover:bg-slate-700 px-8 py-4 text-lg">
+            <Button size="lg" variant="outline" className="border-blue-200 text-slate-900 bg-white/80 hover:bg-white px-8 py-4 text-lg dark:border-slate-600 dark:text-white dark:bg-transparent dark:hover:bg-slate-700">
               <Smartphone className="mr-2 h-5 w-5" />
               Descargar app
             </Button>
