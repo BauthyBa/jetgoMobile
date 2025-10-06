@@ -31,7 +31,8 @@ export default function Dashboard() {
     status: '',
     roomType: '',
     season: '',
-    country: ''
+    country: '',
+    maxParticipants: ''
   })
   const [tab, setTab] = useState('chats')
   const [tripsBase, setTripsBase] = useState([])
@@ -913,6 +914,10 @@ export default function Dashboard() {
                   <input type="number" inputMode="numeric" value={trip.budgetMax} onChange={(e) => setTrip({ ...trip, budgetMax: e.target.value })} placeholder="9999" style={{ color: '#e5e7eb' }} />
                 </div>
                 <div className="field">
+                  <label>Cantidad de personas (máx.)</label>
+                  <input type="number" inputMode="numeric" value={trip.maxParticipants} onChange={(e) => setTrip({ ...trip, maxParticipants: e.target.value })} placeholder="2" style={{ color: '#e5e7eb' }} />
+                </div>
+                <div className="field">
                   <label>Estado</label>
                   <select value={trip.status} onChange={(e) => setTrip({ ...trip, status: e.target.value })} style={{ color: '#111827', background: '#ffffff' }}>
                     <option value="">-</option>
@@ -1011,6 +1016,24 @@ export default function Dashboard() {
                           }
                         }
                       } catch {}
+                      // Client-side required validation
+                      const required = {
+                        name: trip.name,
+                        origin: trip.origin,
+                        destination: trip.destination,
+                        country: trip.country,
+                        budgetMin: trip.budgetMin,
+                        budgetMax: trip.budgetMax,
+                        status: trip.status,
+                        roomType: trip.roomType,
+                        maxParticipants: trip.maxParticipants,
+                      }
+                      const missing = Object.entries(required).filter(([k, v]) => v == null || String(v).trim() === '').map(([k]) => k)
+                      if (missing.length > 0) {
+                        alert(`Completá los campos obligatorios: ${missing.join(', ')}`)
+                        return
+                      }
+
                       const payload = {
                         name: trip.name,
                         origin: trip.origin,
@@ -1023,12 +1046,13 @@ export default function Dashboard() {
                         room_type: trip.roomType || null,
                         season: trip.season || null,
                         country: trip.country || null,
+                        max_participants: trip.maxParticipants !== '' ? Number(trip.maxParticipants) : null,
                         image_url: imageUrl || null,
                         creator_id: profile?.user_id || null,
                       }
                       const { data } = await api.post('/trips/create/', payload)
                       setShowCreateModal(false)
-                      setTrip({ name: '', origin: '', destination: '', startDate: '', endDate: '', budgetMin: '', budgetMax: '', status: '', roomType: '', season: '', country: '' })
+                      setTrip({ name: '', origin: '', destination: '', startDate: '', endDate: '', budgetMin: '', budgetMax: '', status: '', roomType: '', season: '', country: '', maxParticipants: '' })
                       await loadTrips()
                       setJoinDialog({ open: true, title: 'Viaje creado', message: 'Tu viaje fue creado con éxito.' })
                     } catch (e) {
