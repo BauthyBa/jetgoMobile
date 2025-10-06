@@ -16,6 +16,7 @@ export default function ReviewsSection({ userId, isOwnProfile = false }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showReviewForm, setShowReviewForm] = useState(false)
+  const [editingReview, setEditingReview] = useState(null)
   const [currentUser, setCurrentUser] = useState(null)
 
   // Cargar usuario actual
@@ -66,13 +67,24 @@ export default function ReviewsSection({ userId, isOwnProfile = false }) {
     // Recargar las reseñas después de enviar una nueva
     loadReviews()
     setShowReviewForm(false)
+    setEditingReview(null)
+  }
+
+  const handleEditReview = (review) => {
+    setEditingReview(review)
+    setShowReviewForm(true)
+  }
+
+  const handleCancelEdit = () => {
+    setShowReviewForm(false)
+    setEditingReview(null)
   }
 
   const canLeaveReview = () => {
     // No puede dejar reseña si:
     // - Es su propio perfil
     // - No está logueado
-    // - Ya dejó una reseña
+    // - Ya dejó una reseña (podrá editarla desde ReviewCard)
     if (isOwnProfile || !currentUser) return false
     
     const hasReviewed = reviews.some(review => review.reviewer === currentUser.id)
@@ -171,7 +183,8 @@ export default function ReviewsSection({ userId, isOwnProfile = false }) {
         <ReviewForm
           reviewedUserId={userId}
           onReviewSubmitted={handleReviewSubmitted}
-          onCancel={() => setShowReviewForm(false)}
+          onCancel={handleCancelEdit}
+          editingReview={editingReview}
         />
       )}
 
@@ -182,7 +195,11 @@ export default function ReviewsSection({ userId, isOwnProfile = false }) {
             Todas las reseñas ({reviews.length})
           </h4>
           {reviews.map((review) => (
-            <ReviewCard key={review.id} review={review} />
+            <ReviewCard 
+              key={review.id} 
+              review={review} 
+              onEditClick={handleEditReview}
+            />
           ))}
         </div>
       )}

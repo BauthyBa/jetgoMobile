@@ -4,11 +4,12 @@ import GlassCard from './GlassCard'
 import { createReview } from '@/services/api'
 import { supabase } from '@/services/supabase'
 
-export default function ReviewForm({ reviewedUserId, onReviewSubmitted, onCancel }) {
-  const [rating, setRating] = useState(0)
-  const [comment, setComment] = useState('')
+export default function ReviewForm({ reviewedUserId, onReviewSubmitted, onCancel, editingReview = null }) {
+  const [rating, setRating] = useState(editingReview?.rating || 0)
+  const [comment, setComment] = useState(editingReview?.comment || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const isEditing = !!editingReview
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -61,7 +62,9 @@ export default function ReviewForm({ reviewedUserId, onReviewSubmitted, onCancel
     <GlassCard>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">Dejar una reseña</h3>
+          <h3 className="text-lg font-semibold text-white">
+            {isEditing ? 'Editar reseña' : 'Dejar una reseña'}
+          </h3>
           {onCancel && (
             <button
               type="button"
@@ -134,7 +137,7 @@ export default function ReviewForm({ reviewedUserId, onReviewSubmitted, onCancel
             disabled={loading || rating === 0}
             className="btn flex-1"
           >
-            {loading ? 'Enviando...' : 'Enviar reseña'}
+            {loading ? (isEditing ? 'Actualizando...' : 'Enviando...') : (isEditing ? 'Actualizar reseña' : 'Enviar reseña')}
           </button>
         </div>
       </form>

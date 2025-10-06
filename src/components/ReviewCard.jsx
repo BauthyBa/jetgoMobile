@@ -1,7 +1,24 @@
 import StarRating from './StarRating'
 import GlassCard from './GlassCard'
+import { useState, useEffect } from 'react'
+import { supabase } from '@/services/supabase'
 
-export default function ReviewCard({ review }) {
+export default function ReviewCard({ review, onEditClick }) {
+  const [currentUser, setCurrentUser] = useState(null)
+  const [canEdit, setCanEdit] = useState(false)
+
+  useEffect(() => {
+    async function getCurrentUser() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setCurrentUser(user)
+        setCanEdit(user && user.id === review.reviewer)
+      } catch (err) {
+        console.error('Error getting current user:', err)
+      }
+    }
+    getCurrentUser()
+  }, [review.reviewer])
   const formatDate = (dateString) => {
     try {
       const date = new Date(dateString)
@@ -46,12 +63,23 @@ export default function ReviewCard({ review }) {
                 {formatDate(review.created_at)}
               </p>
             </div>
-            <StarRating 
-              rating={review.rating} 
-              size={16} 
-              interactive={false}
-              showNumber={false}
-            />
+            <div className="flex items-center gap-2">
+              <StarRating 
+                rating={review.rating} 
+                size={16} 
+                interactive={false}
+                showNumber={false}
+              />
+              {canEdit && onEditClick && (
+                <button
+                  onClick={() => onEditClick(review)}
+                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                  title="Editar reseña"
+                >
+                  ✏️
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Comentario */}
