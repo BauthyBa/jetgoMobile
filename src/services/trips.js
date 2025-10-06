@@ -20,7 +20,7 @@ export function normalizeTrip(raw) {
   const status = raw.status || null
   const roomType = raw.room_type || null
   const maxParticipants = raw.max_participants ?? null
-  const currentParticipants = raw.current_participants ?? null
+  const currentParticipants = raw.current_participants ?? raw.currentParticipants ?? null
   const creatorId = raw.creator_id || null
   const country = raw.country || null
 

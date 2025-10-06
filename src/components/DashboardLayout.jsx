@@ -25,6 +25,7 @@ export default function DashboardLayout({ children }) {
                 <span className="text-2xl font-extrabold text-white hover:text-emerald-400 transition-colors">JetGo</span>
               </Link>
             </div>
+            {/* Desktop nav */}
             <div className="hidden md:flex items-center justify-center space-x-6">
               {nav.map((n) => (
                 <Link
@@ -36,7 +37,22 @@ export default function DashboardLayout({ children }) {
                 </Link>
               ))}
             </div>
-            <div className="flex items-center justify-end">
+            {/* Mobile nav: collapsible */}
+            <div className="md:hidden flex items-center justify-end">
+              <details>
+                <summary style={{ listStyle: 'none', cursor: 'pointer' }}>
+                  <span className="btn" style={{ height: 34, padding: '0 10px' }}>Menú</span>
+                </summary>
+                <div className="glass-card" style={{ position: 'absolute', right: 16, marginTop: 8, padding: 8, display: 'grid', gap: 6 }}>
+                  {nav.map((n) => (
+                    <Link key={n.path} to={n.path} className={"font-medium " + (isActive(n) ? 'text-blue-400' : 'text-slate-200')}>
+                      {n.label}
+                    </Link>
+                  ))}
+                </div>
+              </details>
+            </div>
+            <div className="hidden md:flex items-center justify-end">
               <span className="text-xs text-slate-400">v1.0.0</span>
             </div>
           </div>
