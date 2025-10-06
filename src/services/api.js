@@ -83,19 +83,40 @@ export async function upsertProfileToBackend(payload) {
   return data
 }
 
-// Funciones para reseñas
+// Funciones para reseñas (usando Supabase)
 export async function createReview(payload) {
-  const { data } = await apiPublic.post('/reviews/create/', payload)
+  const { data } = await apiPublic.post('/supabase/reviews/create/', payload)
   return data
 }
 
 export async function getUserReviews(userId) {
-  const { data } = await apiPublic.get(`/reviews/user/?user_id=${userId}`)
+  const { data } = await apiPublic.get(`/supabase/reviews/user/?user_id=${userId}`)
   return data
 }
 
 export async function getUserProfile(userId) {
   const { data } = await apiPublic.get(`/profile/user/?user_id=${userId}`)
+  return data
+}
+
+// Funciones para notificaciones
+export async function getUserNotifications(userId, limit = 20) {
+  const { data } = await apiPublic.get(`/supabase/notifications/?user_id=${userId}&limit=${limit}`)
+  return data
+}
+
+export async function markNotificationRead(notificationId, userId) {
+  const { data } = await apiPublic.post('/supabase/notifications/read/', {
+    notification_id: notificationId,
+    user_id: userId
+  })
+  return data
+}
+
+export async function markAllNotificationsRead(userId) {
+  const { data } = await apiPublic.post('/supabase/notifications/read-all/', {
+    user_id: userId
+  })
   return data
 }
 

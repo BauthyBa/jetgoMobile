@@ -9,6 +9,7 @@ import DashboardLayout from '@/components/DashboardLayout'
 import GlassCard from '@/components/GlassCard'
 import ProfileCard from '@/components/ProfileCard'
 import ChatsCard from '@/components/ChatsCard'
+import NotificationCenter from '@/components/NotificationCenter'
 import { upsertProfileToBackend } from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import { useLocation } from 'react-router-dom'
@@ -389,12 +390,17 @@ export default function Dashboard() {
           <>
             {section === 'inicio' && (
               <div id="inicio" style={{ marginBottom: 8 }}>
-                <h1 style={{ fontSize: 32, fontWeight: 800 }}>
-                  Bienvenido{profile?.meta?.first_name ? (
-                    <span style={{ background: 'linear-gradient(135deg, #3b82f6, #22c55e)', WebkitBackgroundClip: 'text', color: 'transparent' }}>{`, ${profile.meta.first_name}`}</span>
-                  ) : ''}
-                </h1>
-                <p className="muted">Aquí está tu resumen de viajes</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                  <div>
+                    <h1 style={{ fontSize: 32, fontWeight: 800 }}>
+                      Bienvenido{profile?.meta?.first_name ? (
+                        <span style={{ background: 'linear-gradient(135deg, #3b82f6, #22c55e)', WebkitBackgroundClip: 'text', color: 'transparent' }}>{`, ${profile.meta.first_name}`}</span>
+                      ) : ''}
+                    </h1>
+                    <p className="muted">Aquí está tu resumen de viajes</p>
+                  </div>
+                  <NotificationCenter />
+                </div>
                 <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
                   <div className="glass-card" style={{ padding: 16 }}>
                     <div style={{ fontSize: 12, color: '#94a3b8' }}>Mis viajes</div>
