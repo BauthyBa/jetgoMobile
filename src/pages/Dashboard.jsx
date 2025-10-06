@@ -195,6 +195,19 @@ export default function Dashboard() {
           try {
             const r = await listRoomsForUser(info.user_id)
             if (mounted) setRooms(r)
+            // Deep-link: open chat from query param (?trip= or ?room=)
+            try {
+              const search = new URLSearchParams(window.location.search)
+              const roomParam = search.get('room')
+              const tripParam = search.get('trip')
+              if (roomParam) {
+                const room = (r || []).find((x) => String(x.id) === String(roomParam))
+                if (room) await openRoom(room)
+              } else if (tripParam) {
+                const room = (r || []).find((x) => String(x.trip_id) === String(tripParam))
+                if (room) await openRoom(room)
+              }
+            } catch {}
           } catch (e) {
             console.warn('No se pudieron cargar salas:', e?.message || e)
           }

@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export default function TripCard({ trip, onJoin, onLeave, joining, leaving, onEdit, canEdit, isMember, isOwner }) {
   if (!trip) return null
   const dateRange = trip.startDate
@@ -21,9 +23,9 @@ export default function TripCard({ trip, onJoin, onLeave, joining, leaving, onEd
           <img src={trip.imageUrl} alt={trip.name} style={{ width: 72, height: 72, borderRadius: 12, objectFit: 'cover' }} />
         )}
         <div style={{ display: 'grid', gap: 4, minWidth: 0 }}>
-          <div style={{ fontWeight: 600 }} className="truncate-1">
+          <Link to={`/trip/${trip.id}`} style={{ fontWeight: 600, color: 'inherit', textDecoration: 'none' }} className="truncate-1" title={trip.name}>
             {short(trip.name, 28)}
-          </div>
+          </Link>
           <div className="muted truncate-1" title={`${trip.origin || ''} → ${trip.destination || ''}`}>
             {short(trip.origin || 'Origen ?', 22)} → {short(trip.destination || 'Destino ?', 22)}
           </div>

@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard.jsx'
 import VerifyDni from './pages/VerifyDni.jsx'
 import Layout from './components/Layout.jsx'
 import PublicProfile from './pages/PublicProfile.jsx'
+import TripDetails from './pages/TripDetails.jsx'
 
 const router = createBrowserRouter([
   {
@@ -23,6 +24,7 @@ const router = createBrowserRouter([
       { path: 'verify-dni', element: <VerifyDni /> },
       { path: 'dashboard', element: <Dashboard /> },
       { path: 'u/:userId', element: <PublicProfile /> },
+      { path: 'trip/:tripId', element: <TripDetails /> },
       
     ],
   },

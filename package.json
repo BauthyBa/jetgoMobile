@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/supabase-js": "^2.45.0",
     "@zxing/browser": "^0.1.5",
