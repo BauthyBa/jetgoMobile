@@ -16,11 +16,38 @@ export async function listRoomsForUser(userId) {
   if (roomIds.length === 0) return []
   const { data: rooms, error: rErr } = await supabase
     .from('chat_rooms')
-    .select('id, name, created_at, trip_id')
+    .select('id, name, created_at, trip_id, application_id, is_private, is_group, creator_id')
     .in('id', roomIds)
     .order('created_at', { ascending: false })
   if (rErr) throw rErr
-  return rooms || []
+  const result = rooms || []
+  // Resolve display_name for private rooms: show the other participant's name
+  try {
+    const privateRooms = result.filter((r) => r && (r.is_private === true || r.application_id))
+    for (const pr of privateRooms) {
+      try {
+        const { data: mems } = await supabase
+          .from('chat_members')
+          .select('user_id')
+          .eq('room_id', pr.id)
+        const ids = (mems || []).map((m) => m.user_id)
+        // Pick the other user id (not the creator if possible)
+        const otherId = ids.find((id) => id && id !== pr.creator_id) || ids[0]
+        if (otherId) {
+          const { data: users } = await supabase
+            .from('User')
+            .select('userid,nombre,apellido')
+            .eq('userid', otherId)
+          const u = (users || [])[0]
+          if (u) {
+            const full = [u.nombre, u.apellido].filter(Boolean).join(' ').trim()
+            if (full) pr.display_name = full
+          }
+        }
+      } catch {}
+    }
+  } catch {}
+  return result
 }
 
 export async function createRoom(name) {

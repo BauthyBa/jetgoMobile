@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-export default function TripCard({ trip, onJoin, onLeave, joining, leaving, onEdit, canEdit, isMember, isOwner }) {
+export default function TripCard({ trip, onJoin, onLeave, joining, leaving, onEdit, canEdit, isMember, isOwner, onApply }) {
   if (!trip) return null
   const dateRange = trip.startDate
     ? (trip.endDate ? `${new Date(trip.startDate).toLocaleDateString()} - ${new Date(trip.endDate).toLocaleDateString()}` : new Date(trip.startDate).toLocaleDateString())
@@ -60,10 +60,10 @@ export default function TripCard({ trip, onJoin, onLeave, joining, leaving, onEd
             className="btn"
             type="button"
             disabled={joining || (trip.maxParticipants && trip.currentParticipants != null && trip.currentParticipants >= trip.maxParticipants)}
-            onClick={onJoin}
+            onClick={onApply || onJoin}
             title={(trip.maxParticipants && trip.currentParticipants != null && trip.currentParticipants >= trip.maxParticipants) ? 'Cupos completos' : ''}
           >
-            {joining ? 'Uniendo…' : (trip.maxParticipants && trip.currentParticipants != null && trip.currentParticipants >= trip.maxParticipants ? 'Sin cupo' : 'Unirme')}
+            {joining ? 'Aplicando…' : (trip.maxParticipants && trip.currentParticipants != null && trip.currentParticipants >= trip.maxParticipants ? 'Sin cupo' : 'Aplicar')}
           </button>
         )}
       </div>

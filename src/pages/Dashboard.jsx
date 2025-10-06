@@ -3,6 +3,8 @@ import { getSession, supabase, updateUserMetadata } from '../services/supabase'
 import { listRoomsForUser, fetchMessages, sendMessage, subscribeToRoomMessages, inviteByEmail } from '@/services/chat'
 import { api } from '@/services/api'
 import { listTrips as fetchTrips, joinTrip, leaveTrip } from '@/services/trips'
+import { applyToTrip, respondToApplication } from '@/services/applications'
+import ApplyToTripModal from '@/components/ApplyToTripModal'
 import TripFilters from '@/components/TripFilters'
 import TripGrid from '@/components/TripGrid'
 import DashboardLayout from '@/components/DashboardLayout'
@@ -73,6 +75,8 @@ export default function Dashboard() {
   const [splitMode, setSplitMode] = useState('all')
   const [splitSelected, setSplitSelected] = useState([])
   const [joinDialog, setJoinDialog] = useState({ open: false, title: '', message: '' })
+  const [applyModal, setApplyModal] = useState({ open: false, trip: null })
+  const [applicationStatuses, setApplicationStatuses] = useState({})
 
   // Autocomplete state for country and cities
   const [isoCountry, setIsoCountry] = useState('')
@@ -273,6 +277,41 @@ export default function Dashboard() {
     } catch (e) { /* noop */ }
   }
 
+  // Scan messages and sync application statuses from Supabase
+  async function updateApplicationStatusesFromMessages(msgs) {
+    try {
+      const statusMap = {}
+      const ids = []
+      for (const m of (msgs || [])) {
+        const c = m?.content
+        if (typeof c === 'string' && c.startsWith('APP_STATUS|')) {
+          const parts = c.split('|')
+          const id = parts[1]
+          const st = parts[2]
+          if (id && st) statusMap[String(id)] = String(st)
+        } else if (typeof c === 'string' && c.startsWith('APP|')) {
+          const id = c.split('|')[1]
+          if (id) ids.push(String(id))
+        }
+      }
+      if (Object.keys(statusMap).length > 0) {
+        setApplicationStatuses((prev) => ({ ...prev, ...statusMap }))
+      }
+      const uniqueIds = Array.from(new Set(ids))
+      if (uniqueIds.length === 0) return
+      const { data, error } = await supabase
+        .from('applications')
+        .select('id,status')
+        .in('id', uniqueIds)
+      if (error) return
+      const map = {}
+      for (const row of data || []) {
+        if (row?.id && row?.status) map[String(row.id)] = String(row.status)
+      }
+      if (Object.keys(map).length > 0) setApplicationStatuses((prev) => ({ ...prev, ...map }))
+    } catch {}
+  }
+
   // Open a room and load/subscribe messages
   const openRoom = async (room) => {
     try {
@@ -283,12 +322,14 @@ export default function Dashboard() {
       window.location.hash = '#chats'
       const initial = await fetchMessages(roomId)
       setMessages(initial)
+      await updateApplicationStatusesFromMessages(initial)
       await resolveNamesForMessages(initial)
       if (unsub) {
         try { unsub() } catch {}
       }
       const unsubscribe = subscribeToRoomMessages(roomId, (msg) => {
         setMessages((prev) => [...prev, msg])
+        updateApplicationStatusesFromMessages([msg])
         resolveNamesForMessages([msg])
       })
       setUnsub(() => unsubscribe)
@@ -445,9 +486,23 @@ export default function Dashboard() {
             {section === 'chats' && (
               <section id="chats" style={{ marginTop: 16 }}>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="glass-card md:col-span-1" style={{ padding: 12 }}>
-                    <h3 className="page-title" style={{ color: '#60a5fa', marginBottom: 8 }}>Chats</h3>
-                    <ChatsCard rooms={rooms} onOpen={openRoom} />
+                  <div className="glass-card md:col-span-1" style={{ padding: 12, display: 'grid', gap: 12 }}>
+                    <div>
+                      <h3 className="page-title" style={{ color: '#60a5fa', marginBottom: 8 }}>Chats de Viajes</h3>
+                      <ChatsCard
+                        title="Chats de Viajes"
+                        rooms={(rooms || []).filter((r) => !(r.is_private === true || r.application_id))}
+                        onOpen={openRoom}
+                      />
+                    </div>
+                    <div>
+                      <h3 className="page-title" style={{ color: '#60a5fa', marginBottom: 8 }}>Chats privados</h3>
+                      <ChatsCard
+                        title="Chats privados"
+                        rooms={(rooms || []).filter((r) => (r.is_private === true || r.application_id))}
+                        onOpen={openRoom}
+                      />
+                    </div>
                   </div>
                   <div className="glass-card md:col-span-2" style={{ padding: 12, minHeight: 360, display: 'flex', flexDirection: 'column' }}>
                     {!activeRoomId && (
@@ -456,42 +511,107 @@ export default function Dashboard() {
                     {activeRoomId && (
                       <>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 8 }}>
-                          <div style={{ fontWeight: 700, fontSize: 16 }}>{activeRoom?.name || 'Chat'}</div>
+                          <div style={{ fontWeight: 700, fontSize: 16 }}>{activeRoom?.display_name || activeRoom?.name || 'Chat'}</div>
                           <button
-                            className="btn secondary"
-                            style={{ height: 28, padding: '0 10px' }}
-                            onClick={async () => {
-                              try {
-                                const tripId = activeRoom?.trip_id
-                                if (!tripId) {
-                                  alert('No se pueden cargar integrantes: falta el trip_id asociado a esta sala')
-                                  return
+                              className="btn secondary"
+                              style={{ height: 28, padding: '0 10px' }}
+                              onClick={async () => {
+                                try {
+                                  // Si es un chat privado, mostrar solo los 2 participantes
+                                  if (activeRoom?.is_private) {
+                                    const members = [
+                                      { user_id: profile?.id, display_name: profile?.display_name || 'Tú' },
+                                      { user_id: activeRoom?.creator_id, display_name: userNames[activeRoom?.creator_id] || 'Usuario' }
+                                    ]
+                                    setChatMembers(members)
+                                    setChatInfoOpen(true)
+                                    return
+                                  }
+                                  
+                                  const tripId = activeRoom?.trip_id
+                                  if (!tripId) {
+                                    alert('No se pueden cargar integrantes: falta el trip_id asociado a esta sala')
+                                    return
+                                  }
+                                  const res = await api.get('/trips/members/', { params: { trip_id: tripId } })
+                                  const members = Array.isArray(res?.data?.members) ? res.data.members : []
+                                  setChatMembers(members)
+                                  setChatInfoOpen(true)
+                                } catch (e) {
+                                  alert('No se pudieron cargar los integrantes')
                                 }
-                                const res = await api.get('/trips/members/', { params: { trip_id: tripId } })
-                                const members = Array.isArray(res?.data?.members) ? res.data.members : []
-                                setChatMembers(members)
-                                setChatInfoOpen(true)
-                              } catch (e) {
-                                alert('No se pudieron cargar los integrantes')
-                              }
-                            }}
-                          >
-                            Ver información
-                          </button>
+                              }}
+                            >
+                              Ver información
+                            </button>
                         </div>
                         <div style={{ flex: 1, overflow: 'auto', paddingRight: 8 }}>
                           <div style={{ display: 'grid', gap: 8 }}>
-                            {messages.map((m) => (
-                              <div key={m.id} className="glass-card" style={{ padding: 8 }}>
-                                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{getSenderLabel(m)}</div>
-                                <div style={{ fontSize: 13 }}>{m.content}</div>
-                                <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>{new Date(m.created_at).toLocaleString()}</div>
-                              </div>
-                            ))}
+                            {messages.map((m) => {
+                              const isApp = typeof m?.content === 'string' && m.content.startsWith('APP|')
+                              const isAppStatus = typeof m?.content === 'string' && m.content.startsWith('APP_STATUS|')
+                              let applicationId = null
+                              let displayContent = m?.content || ''
+                              if (isApp) {
+                                const parts = displayContent.split('|')
+                                applicationId = parts[1]
+                                displayContent = parts.slice(2).join('|')
+                              } else if (isAppStatus) {
+                                // Render-only; actual status sync happens in updateApplicationStatusesFromMessages
+                                displayContent = ''
+                              }
+                              return (
+                                <div key={m.id} className="glass-card" style={{ padding: 8 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{getSenderLabel(m)}</div>
+                                  {displayContent && <div style={{ fontSize: 13 }}>{displayContent}</div>}
+                                  {(() => {
+                                    try {
+                                      const isPrivate = !!(activeRoom?.is_private || activeRoom?.application_id)
+                                      const isOrganizer = !!(activeRoom?.creator_id && profile?.user_id && String(activeRoom.creator_id) === String(profile.user_id))
+                                      const status = applicationStatuses[applicationId]
+                                      const isFinal = status === 'accepted' || status === 'rejected'
+                                      if (isApp && applicationId && isFinal) {
+                                        return (
+                                          <div style={{ marginTop: 8, fontWeight: 600, color: status === 'accepted' ? '#22c55e' : '#ef4444' }}>
+                                            {status === 'accepted' ? 'Ya se ha aceptado la solicitud' : 'Ya se ha rechazado la solicitud'}
+                                          </div>
+                                        )
+                                      }
+                                      if (isPrivate && isOrganizer && isApp && applicationId && !isFinal) {
+                                        return (
+                                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                            <button
+                                              className="btn"
+                                              style={{ height: 32, padding: '0 10px', background: '#ef4444' }}
+                                              onClick={async () => {
+                                                try { await respondToApplication(applicationId, 'reject'); setApplicationStatuses((prev) => ({ ...prev, [applicationId]: 'rejected' })) } catch (e) { alert(e?.response?.data?.error || e?.message || 'No se pudo rechazar') }
+                                              }}
+                                            >
+                                              Rechazar
+                                            </button>
+                                            <button
+                                              className="btn"
+                                              style={{ height: 32, padding: '0 10px', background: '#22c55e' }}
+                                              onClick={async () => {
+                                                try { await respondToApplication(applicationId, 'accept'); setApplicationStatuses((prev) => ({ ...prev, [applicationId]: 'accepted' })) } catch (e) { alert(e?.response?.data?.error || e?.message || 'No se pudo aceptar') }
+                                              }}
+                                            >
+                                              Aceptar
+                                            </button>
+                                          </div>
+                                        )
+                                      }
+                                    } catch {}
+                                    return null
+                                  })()}
+                                  <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>{new Date(m.created_at).toLocaleString()}</div>
+                                </div>
+                              )
+                            })}
                             {messages.length === 0 && <p className="muted">No hay mensajes aún.</p>}
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center' }}>
                           <Input
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
@@ -557,23 +677,10 @@ export default function Dashboard() {
                         joiningId={joiningId}
                         leavingId={leavingId}
                         onJoin={async (t) => {
-                          try {
-                            if (!profile?.user_id) throw new Error('Sin usuario')
-                            setJoiningId(t.id)
-                            const data = await joinTrip(t.id, profile.user_id)
-                            if (data?.ok !== false) {
-                              setJoinDialog({ open: true, title: '¡Te uniste al viaje!', message: 'Podés ver el chat del grupo o seguir explorando.' })
-                              const r = await listRoomsForUser(profile.user_id)
-                              setRooms(r)
-                            } else {
-                              alert(data?.error || 'No se pudo unir al viaje')
-                            }
-                          } catch (e) {
-                            alert(e?.message || 'Error al unirse')
-                          } finally {
-                            setJoiningId(null)
-                          }
+                          // Deprecated join path; use apply flow instead
+                          setApplyModal({ open: true, trip: t })
                         }}
+                        onApply={(t) => setApplyModal({ open: true, trip: t })}
                         onLeave={async (t) => {
                           try {
                             if (!profile?.user_id) throw new Error('Sin usuario')
@@ -600,7 +707,11 @@ export default function Dashboard() {
                         onEdit={(t) => { setEditTripModal({ open: true, data: t }) }}
                         canEdit={(t) => t.creatorId && t.creatorId === profile?.user_id}
                         isMemberFn={(t) => {
-                          try { return Array.isArray(rooms) && rooms.some((r) => String(r?.trip_id) === String(t.id)) } catch { return false }
+                          try {
+                            return Array.isArray(rooms) && rooms.some((r) => (
+                              String(r?.trip_id) === String(t.id) && (r?.is_group === true || (!r?.is_private && !r?.application_id))
+                            ))
+                          } catch { return false }
                         }}
                         isOwnerFn={(t) => t.creatorId && t.creatorId === profile?.user_id}
                       />
@@ -1325,6 +1436,29 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {applyModal.open && (
+        <ApplyToTripModal
+          trip={applyModal.trip}
+          isOpen={applyModal.open}
+          onClose={() => setApplyModal({ open: false, trip: null })}
+          onSuccess={async () => {
+            try {
+              if (!profile?.user_id) return
+              const r = await listRoomsForUser(profile.user_id)
+              setRooms(r)
+              setJoinDialog({ open: true, title: 'Aplicación enviada', message: 'Abrimos un chat privado con el organizador.' })
+              // Try to open the newly created private room for this application (by latest created private room of the trip)
+              try {
+                const tripId = applyModal?.trip?.id
+                const privateRooms = (r || []).filter((x) => String(x.trip_id) === String(tripId) && (x.is_private === true || x.application_id))
+                const byCreated = [...privateRooms].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                if (byCreated[0]) await openRoom(byCreated[0])
+              } catch {}
+            } catch {}
+          }}
+        />
       )}
     </DashboardLayout>
   )

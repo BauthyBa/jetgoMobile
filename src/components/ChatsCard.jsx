@@ -1,11 +1,11 @@
 import GlassCard from './GlassCard'
 
-export default function ChatsCard({ rooms = [], onOpen }) {
+export default function ChatsCard({ title = 'Chats', rooms = [], onOpen }) {
   const count = rooms.length
   return (
     <GlassCard>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700 }}>Chats de Viajes</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 700 }}>{title}</h2>
         <span className="muted" style={{ fontSize: 12 }}>{count} activos</span>
       </div>
       <div style={{ display: 'grid', gap: 8, maxHeight: 360, overflow: 'auto' }}>
@@ -13,7 +13,12 @@ export default function ChatsCard({ rooms = [], onOpen }) {
           <div key={r.id} className="glass-card" style={{ padding: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
               <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontWeight: 600 }}>{r.name}</div>
+                <div style={{ fontWeight: 600 }}>
+                  {r.display_name || r.name}
+                  {r.is_private === true || r.application_id ? (
+                    <span className="muted" style={{ marginLeft: 8, fontWeight: 400, fontSize: 12 }}>(Privado)</span>
+                  ) : null}
+                </div>
               </div>
               <button
                 type="button"
