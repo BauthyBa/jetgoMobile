@@ -349,59 +349,59 @@ export default function Register({ embedded = false }) {
 
   const inner = (
     <>
-      <p className="muted">Subí la foto del frente del DNI para verificar tus datos. Ingresá tus datos manualmente en los campos de abajo.</p>
-      <form className="form form-grid" onSubmit={handleSubmit}>
-            <div className="field">
-              <label>Foto del DNI (frente)</label>
-              <input type="file" accept="image/*" onChange={handleImageChange} />
+      <p className="muted" style={{ fontSize: '18px', marginBottom: '36px' }}>Subí la foto del frente del DNI para verificar tus datos. Ingresá tus datos manualmente en los campos de abajo.</p>
+      <form className="form form-grid" onSubmit={handleSubmit} style={{ gap: '24px' }}>
+            <div className="field" style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '18px', marginBottom: '12px' }}>Foto del DNI (frente)</label>
+              <input type="file" accept="image/*" onChange={handleImageChange} style={{ padding: '16px', fontSize: '18px' }} />
             </div>
-            <div className={"preview " + (imgRef.current?.src ? 'visible' : '')}>
-              <img ref={imgRef} alt="preview" style={{ maxHeight: 220 }} />
+            <div className={"preview " + (imgRef.current?.src ? 'visible' : '')} style={{ marginBottom: '24px' }}>
+              <img ref={imgRef} alt="preview" style={{ maxHeight: 260 }} />
             </div>
-            <div className="field">
-              <label>Foto del DNI (dorso)</label>
-              <input type="file" accept="image/*" onChange={handleBackImageChange} />
+            <div className="field" style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '18px', marginBottom: '12px' }}>Foto del DNI (dorso)</label>
+              <input type="file" accept="image/*" onChange={handleBackImageChange} style={{ padding: '16px', fontSize: '18px' }} />
             </div>
-            <div className={"preview " + (backImgRef.current?.src ? 'visible' : '')}>
-              <img ref={backImgRef} alt="preview dorso" style={{ maxHeight: 220 }} />
+            <div className={"preview " + (backImgRef.current?.src ? 'visible' : '')} style={{ marginBottom: '24px' }}>
+              <img ref={backImgRef} alt="preview dorso" style={{ maxHeight: 260 }} />
             </div>
-            <div className="field">
-              <label>Nombres</label>
-              <input name="first_name" value={form.first_name} onChange={handleChange} placeholder="Ejemplo: Juan Carlos" required />
+            <div className="field" style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '18px', marginBottom: '12px' }}>Nombres</label>
+              <input name="first_name" value={form.first_name} onChange={handleChange} placeholder="Ejemplo: Juan Carlos" required style={{ padding: '16px', fontSize: '18px' }} />
             </div>
-            <div className="field">
-              <label>Apellidos</label>
-              <input name="last_name" value={form.last_name} onChange={handleChange} placeholder="Ejemplo: Pérez Gómez" required />
+            <div className="field" style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '18px', marginBottom: '12px' }}>Apellidos</label>
+              <input name="last_name" value={form.last_name} onChange={handleChange} placeholder="Ejemplo: Pérez Gómez" required style={{ padding: '16px', fontSize: '18px' }} />
             </div>
-            <div className="field">
-              <label>Número de Documento</label>
-              <input name="document_number" value={form.document_number} onChange={handleChange} required />
+            <div className="field" style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '18px', marginBottom: '12px' }}>Número de Documento</label>
+              <input name="document_number" value={form.document_number} onChange={handleChange} required style={{ padding: '16px', fontSize: '18px' }} />
             </div>
-            <div className="field">
-              <label>Sexo</label>
-              <select name="sex" value={form.sex} onChange={handleChange}>
+            <div className="field" style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '18px', marginBottom: '12px' }}>Sexo</label>
+              <select name="sex" value={form.sex} onChange={handleChange} style={{ padding: '16px', fontSize: '18px' }}>
                 <option value="M">M</option>
                 <option value="F">F</option>
               </select>
             </div>
-            <div className="field">
-              <label>Fecha de nacimiento</label>
-              <input type="date" name="birth_date" value={form.birth_date} onChange={handleChange} required />
+            <div className="field" style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '18px', marginBottom: '12px' }}>Fecha de nacimiento</label>
+              <input type="date" name="birth_date" value={form.birth_date} onChange={handleChange} required style={{ padding: '16px', fontSize: '18px' }} />
             </div>
             {!googleMode && (
               <>
-                <div className="field">
-                  <label>Correo</label>
-                  <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="ejemplo@email.com" required />
+                <div className="field" style={{ marginBottom: '24px' }}>
+                  <label style={{ fontSize: '18px', marginBottom: '12px' }}>Correo</label>
+                  <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="ejemplo@email.com" required style={{ padding: '16px', fontSize: '18px' }} />
                 </div>
-                <div className="field">
-                  <label>Contraseña</label>
-                  <input type="password" name="password" value={form.password} onChange={handleChange} required />
+                <div className="field" style={{ marginBottom: '24px' }}>
+                  <label style={{ fontSize: '18px', marginBottom: '12px' }}>Contraseña</label>
+                  <input type="password" name="password" value={form.password} onChange={handleChange} required style={{ padding: '16px', fontSize: '18px' }} />
                 </div>
               </>
             )}
-            <div className="field" style={{ marginTop: 8, alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center', width: '100%' }}>
+            <div className="field" style={{ marginTop: 20, alignItems: 'center', marginBottom: '28px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'center', width: '100%' }}>
                 <input
                   id="terms_checkbox"
                   type="checkbox"
@@ -413,14 +413,14 @@ export default function Register({ embedded = false }) {
                       setTermsAccepted(false)
                     }
                   }}
-                  style={{ width: 18, height: 18 }}
+                  style={{ width: 22, height: 22 }}
                 />
-                <label htmlFor="terms_checkbox" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <label htmlFor="terms_checkbox" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, fontSize: '18px' }}>
                   <span>He leído y acepto los</span>
                   <span
                     role="link"
                     tabIndex={0}
-                    style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer' }}
+                    style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer', fontSize: '18px' }}
                     onClick={async (e) => {
                       e.preventDefault()
                       e.stopPropagation()
@@ -440,13 +440,13 @@ export default function Register({ embedded = false }) {
               </div>
             </div>
             <input type="hidden" name="dni_front_payload" value={form.dni_front_payload} />
-            <div className="actions">
-              <button className="btn" type="submit" disabled={loading || scanning || !termsAccepted}>{googleMode ? (loading || scanning ? 'Verificando…' : 'Verificar DNI') : (loading ? 'Enviando...' : (scanning ? 'Leyendo...' : 'Crear cuenta'))}</button>
-              <button className="btn secondary" type="button" onClick={() => { setForm({ ...form, first_name: '', last_name: '', document_number: '', sex: 'M', birth_date: '', dni_front_payload: '', dni_image_file: null, dni_image_url: '', dni_back_file: null, dni_back_url: '' }); if (imgRef.current) imgRef.current.src = ''; if (backImgRef.current) backImgRef.current.src = ''; }}>Limpiar</button>
-              <span className="muted">{scanning ? 'Procesando imagen...' : ''}</span>
+            <div className="actions" style={{ marginTop: '36px', gap: '20px' }}>
+              <button className="btn" type="submit" disabled={loading || scanning || !termsAccepted} style={{ padding: '18px 24px', fontSize: '18px' }}>{googleMode ? (loading || scanning ? 'Verificando…' : 'Verificar DNI') : (loading ? 'Enviando...' : (scanning ? 'Leyendo...' : 'Crear cuenta'))}</button>
+              <button className="btn secondary" type="button" onClick={() => { setForm({ ...form, first_name: '', last_name: '', document_number: '', sex: 'M', birth_date: '', dni_front_payload: '', dni_image_file: null, dni_image_url: '', dni_back_file: null, dni_back_url: '' }); if (imgRef.current) imgRef.current.src = ''; if (backImgRef.current) backImgRef.current.src = ''; }} style={{ padding: '18px 24px', fontSize: '18px' }}>Limpiar</button>
+              <span className="muted" style={{ fontSize: '18px' }}>{scanning ? 'Procesando imagen...' : ''}</span>
             </div>
-            {ok && <p className="success">Revisa tu correo para confirmar la cuenta. Luego podés iniciar sesión.</p>}
-            {error && <pre className="error">{error}</pre>}
+            {ok && <p className="success" style={{ fontSize: '18px', padding: '18px', marginTop: '24px' }}>Revisa tu correo para confirmar la cuenta. Luego podés iniciar sesión.</p>}
+            {error && <pre className="error" style={{ fontSize: '18px', padding: '18px', marginTop: '24px' }}>{error}</pre>}
       </form>
     </>
   )
@@ -456,9 +456,9 @@ export default function Register({ embedded = false }) {
       {embedded ? (
         <>{inner}</>
       ) : (
-        <div className="container">
-          <div className="card glass-card">
-            <h2 className="page-title">Registro</h2>
+        <div className="container" style={{ maxWidth: '1000px', padding: '40px' }}>
+          <div className="card glass-card" style={{ padding: '50px', transform: 'scale(1.2)', transformOrigin: 'center' }}>
+            <h2 className="page-title" style={{ fontSize: '3rem', marginBottom: '32px' }}>Registro</h2>
             {inner}
           </div>
         </div>
