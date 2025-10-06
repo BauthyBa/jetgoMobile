@@ -1067,7 +1067,7 @@ export default function Dashboard() {
                         country: trip.country || null,
                         max_participants: trip.maxParticipants !== '' ? Number(trip.maxParticipants) : null,
                         image_url: imageUrl || null,
-                        creator_id: profile?.user_id || null,
+                      creator_id: profile?.user_id || editTripModal.data?.creatorId || editTripModal.data?.creator_id || null,
                       }
                       const { data } = await api.post('/trips/create/', payload)
                       setShowCreateModal(false)
@@ -1225,6 +1225,10 @@ export default function Dashboard() {
                   <input type="number" inputMode="numeric" defaultValue={editTripModal.data?.budgetMax ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, budgetMax: e.target.value } }))} />
                 </div>
                 <div className="field">
+                  <label>Cantidad de personas (máx.)</label>
+                  <input type="number" inputMode="numeric" defaultValue={editTripModal.data?.maxParticipants ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, maxParticipants: e.target.value } }))} />
+                </div>
+                <div className="field">
                   <label>Estado</label>
                   <select defaultValue={editTripModal.data?.status ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, status: e.target.value } }))}>
                     <option value="">-</option>
@@ -1261,8 +1265,12 @@ export default function Dashboard() {
                 <Button className="btn secondary" variant="secondary" onClick={() => setEditTripModal({ open: false, data: null })}>Cancelar</Button>
                 <Button onClick={async () => {
                   try {
+                    const editedId = editTripModal.data?.id
+                    const fallbackCreator = (() => {
+                      try { return (tripsBase || []).find((t) => String(t.id) === String(editedId))?.creatorId || null } catch { return null }
+                    })()
                     const payload = {
-                      id: editTripModal.data?.id,
+                      id: editedId,
                       name: editTripModal.data?.name,
                       origin: editTripModal.data?.origin,
                       destination: editTripModal.data?.destination,
@@ -1274,7 +1282,11 @@ export default function Dashboard() {
                       room_type: editTripModal.data?.roomType || null,
                       season: editTripModal.data?.season || null,
                       country: editTripModal.data?.country || null,
+                      max_participants: editTripModal.data?.maxParticipants !== '' ? Number(editTripModal.data?.maxParticipants) : null,
+                      creator_id: profile?.user_id || editTripModal.data?.creatorId || editTripModal.data?.creator_id || fallbackCreator || null,
                     }
+                    if (!payload.id) { alert('Falta id del viaje para actualizar'); return }
+                    if (!payload.creator_id) { alert('Falta creator_id para actualizar este viaje'); return }
                     await api.post('/trips/update/', payload)
                     setEditTripModal({ open: false, data: null })
                     await loadTrips()

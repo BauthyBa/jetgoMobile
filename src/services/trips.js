@@ -65,3 +65,10 @@ export async function leaveTrip(tripId, userId) {
 }
 
 
+// Update trip (frontend expects backend endpoint to exist; if not, caller should handle 404)
+export async function updateTrip(payload) {
+  const { data } = await api.post('/trips/update/', payload)
+  return data
+}
+
+
