@@ -131,4 +131,64 @@ export async function markAllNotificationsRead(userId) {
   return data
 }
 
+// Funciones para reportes de usuarios
+export async function createUserReport(payload) {
+  const { data } = await apiPublic.post('/reports/create/', payload)
+  return data
+}
+
+export async function getUserReports(userId, type = 'received') {
+  const { data } = await apiPublic.get(`/reports/user/?user_id=${userId}&type=${type}`)
+  return data
+}
+
+export async function checkUserSuspension(userId) {
+  const { data } = await apiPublic.get(`/reports/suspension/?user_id=${userId}`)
+  return data
+}
+
+export async function getReportReasons() {
+  const { data } = await apiPublic.get('/reports/reasons/')
+  return data
+}
+
+// Función para subir imagen de evidencia a Supabase Storage
+export async function uploadReportEvidence(file, userId) {
+  try {
+    const { supabase } = await import('./supabase')
+    
+    // Generar nombre único para el archivo
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${userId}/${Date.now()}.${fileExt}`
+    
+    // Subir archivo al bucket report-evidence
+    const { data, error } = await supabase.storage
+      .from('report-evidence')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (error) {
+      throw error
+    }
+
+    // Obtener URL pública del archivo
+    const { data: urlData } = supabase.storage
+      .from('report-evidence')
+      .getPublicUrl(fileName)
+
+    return {
+      ok: true,
+      url: urlData.publicUrl,
+      path: fileName
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      error: error.message
+    }
+  }
+}
+
 

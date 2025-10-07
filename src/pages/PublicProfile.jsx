@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import GlassCard from '@/components/GlassCard'
 import ProfileCard from '@/components/ProfileCard'
 import ReviewsSection from '@/components/ReviewsSection'
+import ReportUserModal from '@/components/ReportUserModal'
 import DashboardLayout from '@/components/DashboardLayout'
 import { supabase } from '@/services/supabase'
 
@@ -13,6 +14,7 @@ export default function PublicProfile() {
   const [userRow, setUserRow] = useState(null)
   const [currentUser, setCurrentUser] = useState(null)
   const [isOwnProfile, setIsOwnProfile] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -85,23 +87,46 @@ export default function PublicProfile() {
             {isOwnProfile ? 'Mi Perfil' : 'Perfil'}
           </h3>
         </div>
-        <ProfileCard profile={{
-          user_id: userId,
-          email: base?.mail,
-          dni_verified: true,
-          meta: {
-            first_name: fullName,
-            last_name: '',
-            bio: bioPublic || bio,
-            interests: (interestsPublic.length > 0 ? interestsPublic : interests),
-            favorite_travel_styles: (favsPublic.length > 0 ? favsPublic : favs),
-          },
-        }} readOnly={!isOwnProfile} />
+        <div className="relative">
+          <ProfileCard profile={{
+            user_id: userId,
+            email: base?.mail,
+            dni_verified: true,
+            meta: {
+              first_name: fullName,
+              last_name: '',
+              bio: bioPublic || bio,
+              interests: (interestsPublic.length > 0 ? interestsPublic : interests),
+              favorite_travel_styles: (favsPublic.length > 0 ? favsPublic : favs),
+            },
+          }} readOnly={!isOwnProfile} />
+          
+          {/* Botón de reportar usuario */}
+          {!isOwnProfile && currentUser && (
+            <div className="absolute bottom-4 right-4">
+              <button
+                onClick={() => setShowReportModal(true)}
+                className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 shadow-lg"
+                title="Reportar usuario"
+              >
+                🚫 Reportar usuario
+              </button>
+            </div>
+          )}
+        </div>
         
         {/* Sección de reseñas */}
         <ReviewsSection 
           userId={userId} 
           isOwnProfile={isOwnProfile}
+        />
+
+        {/* Modal de reporte */}
+        <ReportUserModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          reportedUserId={userId}
+          reportedUserName={fullName || 'Usuario'}
         />
       </div>
     </DashboardLayout>
