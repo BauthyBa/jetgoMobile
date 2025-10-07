@@ -21,7 +21,12 @@ export default function ApplyToTripModal({ trip, isOpen, onClose, onSuccess }) {
       onClose()
       setMessage('')
     } catch (error) {
-      alert(error?.response?.data?.error || 'Error al aplicar al viaje')
+      const errorMessage = error?.response?.data?.error || error?.response?.data?.message || 'Error al aplicar al viaje'
+      if (errorMessage.includes('Ya has aplicado')) {
+        alert('Ya enviaste una aplicación para este viaje. No puedes aplicar dos veces al mismo viaje.')
+      } else {
+        alert(errorMessage)
+      }
     } finally {
       setLoading(false)
     }

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-export default function TripCard({ trip, onJoin, onLeave, joining, leaving, onEdit, canEdit, isMember, isOwner, onApply }) {
+export default function TripCard({ trip, onJoin, onLeave, joining, leaving, onEdit, canEdit, isMember, isOwner, onApply, hasApplied }) {
   if (!trip) return null
   const dateRange = trip.startDate
     ? (trip.endDate ? `${new Date(trip.startDate).toLocaleDateString()} - ${new Date(trip.endDate).toLocaleDateString()}` : new Date(trip.startDate).toLocaleDateString())
@@ -54,6 +54,15 @@ export default function TripCard({ trip, onJoin, onLeave, joining, leaving, onEd
         {isMember ? (
           <button className="btn secondary" type="button" disabled={leaving} onClick={onLeave}>
             {isOwner ? (leaving ? 'Eliminando…' : 'Eliminar viaje') : (leaving ? 'Saliendo…' : 'Abandonar')}
+          </button>
+        ) : hasApplied ? (
+          <button
+            className="btn secondary"
+            type="button"
+            disabled={true}
+            title="Ya enviaste una aplicación para este viaje"
+          >
+            Aplicación enviada
           </button>
         ) : (
           <button

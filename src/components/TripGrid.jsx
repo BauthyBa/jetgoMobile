@@ -1,6 +1,6 @@
 import TripCard from './TripCard'
 
-export default function TripGrid({ trips, onJoin, onLeave, joiningId, leavingId, onEdit, canEdit, isMemberFn, isOwnerFn, onApply }) {
+export default function TripGrid({ trips, onJoin, onLeave, joiningId, leavingId, onEdit, canEdit, isMemberFn, isOwnerFn, onApply, hasAppliedFn }) {
   return (
     <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, 260px)', justifyContent: 'center' }}>
       {(trips || []).map((t) => (
@@ -16,6 +16,7 @@ export default function TripGrid({ trips, onJoin, onLeave, joiningId, leavingId,
           isMember={!!isMemberFn && isMemberFn(t)}
           isOwner={!!isOwnerFn && isOwnerFn(t)}
           onApply={onApply ? () => onApply(t) : undefined}
+          hasApplied={!!hasAppliedFn && hasAppliedFn(t)}
         />
       ))}
     </div>

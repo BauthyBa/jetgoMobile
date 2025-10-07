@@ -11,3 +11,8 @@ export async function respondToApplication(applicationId, action) {
   const { data } = await api.post('/applications/respond/', { application_id: applicationId, action })
   return data
 }
+
+export async function getUserApplications() {
+  const { data } = await api.get('/applications/')
+  return data
+}

@@ -3,7 +3,7 @@ import { getSession, supabase, updateUserMetadata } from '../services/supabase'
 import { listRoomsForUser, fetchMessages, sendMessage, subscribeToRoomMessages, inviteByEmail } from '@/services/chat'
 import { api } from '@/services/api'
 import { listTrips as fetchTrips, joinTrip, leaveTrip } from '@/services/trips'
-import { applyToTrip, respondToApplication } from '@/services/applications'
+import { applyToTrip, respondToApplication, getUserApplications } from '@/services/applications'
 import ApplyToTripModal from '@/components/ApplyToTripModal'
 import TripFilters from '@/components/TripFilters'
 import TripGrid from '@/components/TripGrid'
@@ -78,6 +78,7 @@ export default function Dashboard() {
   const [applyModal, setApplyModal] = useState({ open: false, trip: null })
   const [applicationStatuses, setApplicationStatuses] = useState({})
   const [applicationOrganizer, setApplicationOrganizer] = useState({})
+  const [userApplications, setUserApplications] = useState([])
 
   // Autocomplete state for country and cities
   const [isoCountry, setIsoCountry] = useState('')
@@ -229,6 +230,7 @@ export default function Dashboard() {
   useEffect(() => {
     // Load trips on mount to have data for Trips/Expenses sections
     loadTrips()
+    loadUserApplications()
   }, [])
 
   useEffect(() => {
@@ -276,6 +278,22 @@ export default function Dashboard() {
       setTripsBase(normalized)
       setTrips(normalized)
     } catch (e) { /* noop */ }
+  }
+
+  async function loadUserApplications() {
+    try {
+      const data = await getUserApplications()
+      setUserApplications(data || [])
+    } catch (e) {
+      console.error('Error loading user applications:', e)
+    }
+  }
+
+  function hasUserAppliedToTrip(tripId) {
+    return userApplications.some(app => 
+      String(app.trip) === String(tripId) && 
+      app.status === 'pending'
+    )
   }
 
   // Scan messages and sync application statuses from Supabase
@@ -763,6 +781,7 @@ export default function Dashboard() {
                           } catch { return false }
                         }}
                         isOwnerFn={(t) => t.creatorId && t.creatorId === profile?.user_id}
+                        hasAppliedFn={(t) => hasUserAppliedToTrip(t.id)}
                       />
                     </div>
                     
@@ -1568,6 +1587,8 @@ export default function Dashboard() {
               if (!profile?.user_id) return
               const r = await listRoomsForUser(profile.user_id)
               setRooms(r)
+              // Recargar aplicaciones del usuario para actualizar el estado
+              await loadUserApplications()
               setJoinDialog({ open: true, title: 'Aplicación enviada', message: 'Abrimos un chat privado con el organizador.' })
               // Open the specific room returned by the backend
               try {
