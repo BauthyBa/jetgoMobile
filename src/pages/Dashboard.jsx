@@ -444,7 +444,7 @@ export default function Dashboard() {
           <>
             {section === 'inicio' && (
               <div id="inicio" style={{ marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start' }}>
                   <div>
                     <h1 style={{ fontSize: 32, fontWeight: 800 }}>
                       Bienvenido{profile?.meta?.first_name ? (
@@ -455,16 +455,16 @@ export default function Dashboard() {
                   </div>
                   <NotificationCenter />
                 </div>
-                <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-                  <div className="glass-card" style={{ padding: 16 }}>
+                <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+                  <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <div style={{ fontSize: 12, color: '#94a3b8' }}>Mis viajes</div>
                     <div style={{ fontSize: 28, fontWeight: 800 }}>{tripsBase.length}</div>
                   </div>
-                  <div className="glass-card" style={{ padding: 16 }}>
+                  <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <div style={{ fontSize: 12, color: '#94a3b8' }}>Chats</div>
                     <div style={{ fontSize: 28, fontWeight: 800 }}>{rooms.length}</div>
                   </div>
-                  <div className="glass-card" style={{ padding: 16 }}>
+                  <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <div style={{ fontSize: 12, color: '#94a3b8' }}>Gastos guardados</div>
                     <div style={{ fontSize: 28, fontWeight: 800 }}>{expenses.length}</div>
                   </div>
