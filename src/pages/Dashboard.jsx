@@ -452,38 +452,38 @@ export default function Dashboard() {
                       ) : ''}
                     </h1>
                     <p className="muted">Aquí está tu resumen de viajes</p>
+                    <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+                      <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>Mis viajes</div>
+                        <div style={{ fontSize: 28, fontWeight: 800 }}>{tripsBase.length}</div>
+                      </div>
+                      <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>Chats</div>
+                        <div style={{ fontSize: 28, fontWeight: 800 }}>{rooms.length}</div>
+                      </div>
+                      <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>Gastos guardados</div>
+                        <div style={{ fontSize: 28, fontWeight: 800 }}>{expenses.length}</div>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 16 }}>
+                      <Button
+                        variant="secondary"
+                        onClick={async () => {
+                          try {
+                            await supabase.auth.signOut()
+                            localStorage.removeItem('access_token')
+                            navigate('/')
+                          } catch (e) {
+                            alert('No se pudo cerrar sesión')
+                          }
+                        }}
+                      >
+                        Cerrar sesión
+                      </Button>
+                    </div>
                   </div>
                   <NotificationCenter />
-                </div>
-                <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
-                  <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>Mis viajes</div>
-                    <div style={{ fontSize: 28, fontWeight: 800 }}>{tripsBase.length}</div>
-                  </div>
-                  <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>Chats</div>
-                    <div style={{ fontSize: 28, fontWeight: 800 }}>{rooms.length}</div>
-                  </div>
-                  <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>Gastos guardados</div>
-                    <div style={{ fontSize: 28, fontWeight: 800 }}>{expenses.length}</div>
-                  </div>
-                </div>
-                <div style={{ marginTop: 16 }}>
-                  <Button
-                    variant="secondary"
-                    onClick={async () => {
-                      try {
-                        await supabase.auth.signOut()
-                        localStorage.removeItem('access_token')
-                        navigate('/')
-                      } catch (e) {
-                        alert('No se pudo cerrar sesión')
-                      }
-                    }}
-                  >
-                    Cerrar sesión
-                  </Button>
                 </div>
               </div>
             )}
