@@ -85,8 +85,19 @@ export async function upsertProfileToBackend(payload) {
 
 // Funciones para reseñas (usando Supabase)
 export async function createReview(payload) {
-  const { data } = await apiPublic.post('/supabase/reviews/create/', payload)
-  return data
+  // Preferir endpoint Django (no requiere credenciales admin). Si no existe, usar Supabase.
+  try {
+    const { data } = await apiPublic.post('/reviews/create/', payload)
+    return data
+  } catch (ePrimary) {
+    try {
+      const { data } = await apiPublic.post('/supabase/reviews/create/', payload)
+      return data
+    } catch (eFallback) {
+      const msg = eFallback?.response?.data?.error || ePrimary?.response?.data?.error || eFallback?.message || ePrimary?.message || 'No se pudo crear la reseña'
+      return { ok: false, error: msg }
+    }
+  }
 }
 
 export async function getUserReviews(userId) {

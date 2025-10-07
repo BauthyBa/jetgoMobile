@@ -36,16 +36,8 @@ export default function PublicProfile() {
         if (error) throw error
         const base = (data || [])[0] || null
 
-        // Intentar leer metadata pública desde el auth (si RLS y settings lo permiten)
-        let meta = {}
-        try {
-          const { data: authData } = await supabase.auth.admin.getUserById(userId)
-          meta = authData?.user?.user_metadata || {}
-        } catch (_e) {
-          // Si no hay permisos admin en cliente, ignoramos metadata y usamos solo la tabla pública
-          meta = {}
-        }
-        if (mounted) setUserRow({ base, meta })
+        // No usar admin.getUserById() en cliente (403). Solo tabla pública.
+        if (mounted) setUserRow({ base, meta: {} })
       } catch (e) {
         if (mounted) setError(e?.message || 'No se pudo cargar el perfil')
       } finally {

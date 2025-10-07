@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, MapPin, Calendar } from 'lucide-react'
 import Reveal from '@/components/Reveal'
 import ColorBar from '@/components/ColorBar'
 import { searchLocations } from '@/services/tripadvisor'
+import { getSession, supabase } from '@/services/supabase'
 
 export default function HeroSection() {
   const [fromText, setFromText] = useState('')
@@ -13,6 +15,17 @@ export default function HeroSection() {
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState([])
   const [error, setError] = useState('')
+  const [loggedIn, setLoggedIn] = useState(false)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    let mounted = true
+    getSession().then((s) => { if (mounted) setLoggedIn(!!s?.user) })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (mounted) setLoggedIn(!!session?.user)
+    })
+    return () => { mounted = false; subscription.unsubscribe() }
+  }, [])
 
   async function handleSearch() {
     try {
@@ -25,6 +38,14 @@ export default function HeroSection() {
       setError('No se pudieron buscar destinos ahora.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  function handleGoTrips() {
+    if (loggedIn) {
+      navigate('/dashboard#trips')
+    } else {
+      navigate('/login')
     }
   }
 
@@ -88,8 +109,8 @@ export default function HeroSection() {
             <div className="md:col-span-1">
               <Button
                 size="lg"
-                onClick={handleSearch}
-                disabled={loading || !toText.trim()}
+                onClick={handleGoTrips}
+                disabled={false}
                 className="w-full bg-gradient-to-r from-blue-600 via-blue-500 to-emerald-500 hover:brightness-110 text-white shadow-xl ring-1 ring-blue-400/40 disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Search className="mr-2 h-5 w-5" />
@@ -125,7 +146,7 @@ export default function HeroSection() {
         </Reveal>
         <Reveal delay={250}>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="outline" className="border-slate-500 text-white bg-transparent hover:bg-slate-700 hover:text-white ring-1 ring-slate-400/20">Publicar un viaje</Button>
+            <Button size="lg" variant="outline" onClick={handleGoTrips} className="border-slate-500 text-white bg-transparent hover:bg-slate-700 hover:text-white ring-1 ring-slate-400/20">Publicar un viaje</Button>
           </div>
         </Reveal>
       </div>
