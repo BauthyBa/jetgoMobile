@@ -517,24 +517,49 @@ export default function Dashboard() {
                               style={{ height: 28, padding: '0 10px' }}
                               onClick={async () => {
                                 try {
-                                  // Si es un chat privado, mostrar solo los 2 participantes
-                                  if (activeRoom?.is_private) {
-                                    const members = [
-                                      { user_id: profile?.id, display_name: profile?.display_name || 'Tú' },
-                                      { user_id: activeRoom?.creator_id, display_name: userNames[activeRoom?.creator_id] || 'Usuario' }
-                                    ]
+                                  // Chats privados: resolver miembros por room_id y mapear nombres
+                                  if (activeRoom?.is_private || activeRoom?.application_id) {
+                                    const roomId = activeRoom?.id
+                                    if (!roomId) { alert('Sala no válida'); return }
+                                    const { data: mems } = await supabase
+                                      .from('chat_members')
+                                      .select('user_id')
+                                      .eq('room_id', roomId)
+                                    const ids = Array.from(new Set((mems || []).map((m) => m.user_id).filter(Boolean)))
+                                    const nameMap = await fetchNamesForUserIds(ids)
+                                    const members = ids.map((id) => ({
+                                      user_id: id,
+                                      name: (profile?.user_id && id === profile.user_id)
+                                        ? (profile?.meta?.first_name && profile?.meta?.last_name ? `${profile.meta.first_name} ${profile.meta.last_name}` : 'Tú')
+                                        : (nameMap[id] || 'Usuario')
+                                    }))
                                     setChatMembers(members)
                                     setChatInfoOpen(true)
                                     return
                                   }
-                                  
+
+                                  // Chats de viaje: usar backend y completar nombres faltantes
                                   const tripId = activeRoom?.trip_id
                                   if (!tripId) {
                                     alert('No se pueden cargar integrantes: falta el trip_id asociado a esta sala')
                                     return
                                   }
                                   const res = await api.get('/trips/members/', { params: { trip_id: tripId } })
-                                  const members = Array.isArray(res?.data?.members) ? res.data.members : []
+                                  const rawMembers = Array.isArray(res?.data?.members) ? res.data.members : []
+                                  const ids = Array.from(new Set(rawMembers.map((m) => m.user_id).filter(Boolean)))
+                                  const nameMap = await fetchNamesForUserIds(ids)
+                                  const members = rawMembers.map((m) => {
+                                    const id = m.user_id
+                                    let name = m.name || nameMap[id]
+                                    if (!name) {
+                                      if (profile?.user_id && id === profile.user_id) {
+                                        name = (profile?.meta?.first_name && profile?.meta?.last_name) ? `${profile.meta.first_name} ${profile.meta.last_name}` : 'Tú'
+                                      } else {
+                                        name = 'Usuario'
+                                      }
+                                    }
+                                    return { user_id: id, name }
+                                  })
                                   setChatMembers(members)
                                   setChatInfoOpen(true)
                                 } catch (e) {
@@ -1220,8 +1245,7 @@ export default function Dashboard() {
                         } catch {}
                       }}
                     >
-                      <div style={{ fontWeight: 600 }}>{m.name || m.user_id}</div>
-                      <div className="muted" style={{ fontSize: 12 }}>{m.user_id}</div>
+                      <div style={{ fontWeight: 600 }}>{m.name || 'Usuario'}</div>
                     </button>
                   ))}
             </div>
