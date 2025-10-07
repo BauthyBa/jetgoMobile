@@ -16,8 +16,8 @@ export default function ApplyToTripModal({ trip, isOpen, onClose, onSuccess }) {
         const session = await getSession()
         userId = session?.user?.id || ''
       } catch {}
-      await applyToTrip(trip.id, message, userId)
-      onSuccess?.()
+      const result = await applyToTrip(trip.id, message, userId)
+      onSuccess?.(result?.room_id)
       onClose()
       setMessage('')
     } catch (error) {

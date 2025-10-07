@@ -77,6 +77,7 @@ export default function Dashboard() {
   const [joinDialog, setJoinDialog] = useState({ open: false, title: '', message: '' })
   const [applyModal, setApplyModal] = useState({ open: false, trip: null })
   const [applicationStatuses, setApplicationStatuses] = useState({})
+  const [applicationOrganizer, setApplicationOrganizer] = useState({})
 
   // Autocomplete state for country and cities
   const [isoCountry, setIsoCountry] = useState('')
@@ -324,6 +325,18 @@ export default function Dashboard() {
       setMessages(initial)
       await updateApplicationStatusesFromMessages(initial)
       await resolveNamesForMessages(initial)
+      // Pre-resolve organizer permission for application actions
+      try {
+        if (room?.application_id) {
+          const { data: appRows } = await supabase.from('applications').select('trip_id').eq('id', room.application_id).limit(1)
+          const tripId = (appRows || [])[0]?.trip_id
+          if (tripId) {
+            const { data: tripRows } = await supabase.from('trips').select('creator_id').eq('id', tripId).limit(1)
+            const organizerId = (tripRows || [])[0]?.creator_id
+            setApplicationOrganizer((prev) => ({ ...prev, [room.application_id]: String(organizerId) === String(profile?.user_id) }))
+          }
+        }
+      } catch {}
       if (unsub) {
         try { unsub() } catch {}
       }
@@ -431,7 +444,7 @@ export default function Dashboard() {
           <>
             {section === 'inicio' && (
               <div id="inicio" style={{ marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start' }}>
                   <div>
                     <h1 style={{ fontSize: 32, fontWeight: 800 }}>
                       Bienvenido{profile?.meta?.first_name ? (
@@ -439,38 +452,38 @@ export default function Dashboard() {
                       ) : ''}
                     </h1>
                     <p className="muted">Aquí está tu resumen de viajes</p>
+                    <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+                      <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>Mis viajes</div>
+                        <div style={{ fontSize: 28, fontWeight: 800 }}>{tripsBase.length}</div>
+                      </div>
+                      <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>Chats</div>
+                        <div style={{ fontSize: 28, fontWeight: 800 }}>{rooms.length}</div>
+                      </div>
+                      <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                        <div style={{ fontSize: 12, color: '#94a3b8' }}>Gastos guardados</div>
+                        <div style={{ fontSize: 28, fontWeight: 800 }}>{expenses.length}</div>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 16 }}>
+                      <Button
+                        variant="secondary"
+                        onClick={async () => {
+                          try {
+                            await supabase.auth.signOut()
+                            localStorage.removeItem('access_token')
+                            navigate('/')
+                          } catch (e) {
+                            alert('No se pudo cerrar sesión')
+                          }
+                        }}
+                      >
+                        Cerrar sesión
+                      </Button>
+                    </div>
                   </div>
                   <NotificationCenter />
-                </div>
-                <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-                  <div className="glass-card" style={{ padding: 16 }}>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>Mis viajes</div>
-                    <div style={{ fontSize: 28, fontWeight: 800 }}>{tripsBase.length}</div>
-                  </div>
-                  <div className="glass-card" style={{ padding: 16 }}>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>Chats</div>
-                    <div style={{ fontSize: 28, fontWeight: 800 }}>{rooms.length}</div>
-                  </div>
-                  <div className="glass-card" style={{ padding: 16 }}>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>Gastos guardados</div>
-                    <div style={{ fontSize: 28, fontWeight: 800 }}>{expenses.length}</div>
-                  </div>
-                </div>
-                <div style={{ marginTop: 16 }}>
-                  <Button
-                    variant="secondary"
-                    onClick={async () => {
-                      try {
-                        await supabase.auth.signOut()
-                        localStorage.removeItem('access_token')
-                        navigate('/')
-                      } catch (e) {
-                        alert('No se pudo cerrar sesión')
-                      }
-                    }}
-                  >
-                    Cerrar sesión
-                  </Button>
                 </div>
               </div>
             )}
@@ -592,7 +605,18 @@ export default function Dashboard() {
                                   {(() => {
                                     try {
                                       const isPrivate = !!(activeRoom?.is_private || activeRoom?.application_id)
-                                      const isOrganizer = !!(activeRoom?.creator_id && profile?.user_id && String(activeRoom.creator_id) === String(profile.user_id))
+                                      let isOrganizer = false
+                                      if (isPrivate && activeRoom?.application_id) {
+                                        try {
+                                          const cached = applicationOrganizer[activeRoom.application_id]
+                                          if (typeof cached === 'boolean') {
+                                            isOrganizer = cached
+                                          } else {
+                                            // Resolve without await in render: pre-resolve organizer in effect on open
+                                            isOrganizer = false
+                                          }
+                                        } catch {}
+                                      }
                                       const status = applicationStatuses[applicationId]
                                       const isFinal = status === 'accepted' || status === 'rejected'
                                       if (isApp && applicationId && isFinal) {
@@ -1054,19 +1078,19 @@ export default function Dashboard() {
                 </div>
                 <div className="field">
                   <label>Desde</label>
-                  <input type="date" value={trip.startDate} onChange={(e) => setTrip({ ...trip, startDate: e.target.value })} min={new Date().toISOString().split('T')[0]} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }} />
+                  <input type="date" value={trip.startDate} onChange={(e) => setTrip({ ...trip, startDate: e.target.value })} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }} />
                 </div>
                 <div className="field">
                   <label>Hasta</label>
-                  <input type="date" value={trip.endDate} onChange={(e) => setTrip({ ...trip, endDate: e.target.value })} min={new Date().toISOString().split('T')[0]} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }} />
+                  <input type="date" value={trip.endDate} onChange={(e) => setTrip({ ...trip, endDate: e.target.value })} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }} />
                 </div>
                 <div className="field">
                   <label>Presupuesto mín.</label>
-                  <input type="number" inputMode="numeric" value={trip.budgetMin} onChange={(e) => setTrip({ ...trip, budgetMin: e.target.value })} placeholder="0" min="0" style={{ color: '#e5e7eb' }} />
+                  <input type="number" inputMode="numeric" value={trip.budgetMin} onChange={(e) => setTrip({ ...trip, budgetMin: e.target.value })} placeholder="0" style={{ color: '#e5e7eb' }} />
                 </div>
                 <div className="field">
                   <label>Presupuesto máx.</label>
-                  <input type="number" inputMode="numeric" value={trip.budgetMax} onChange={(e) => setTrip({ ...trip, budgetMax: e.target.value })} placeholder="9999" min="0" style={{ color: '#e5e7eb' }} />
+                  <input type="number" inputMode="numeric" value={trip.budgetMax} onChange={(e) => setTrip({ ...trip, budgetMax: e.target.value })} placeholder="9999" style={{ color: '#e5e7eb' }} />
                 </div>
                 <div className="field">
                   <label>Cantidad de personas (máx.)</label>
@@ -1186,42 +1210,6 @@ export default function Dashboard() {
                       const missing = Object.entries(required).filter(([k, v]) => v == null || String(v).trim() === '').map(([k]) => k)
                       if (missing.length > 0) {
                         alert(`Completá los campos obligatorios: ${missing.join(', ')}`)
-                        return
-                      }
-
-                      // Validación de presupuesto
-                      const budgetMin = Number(trip.budgetMin)
-                      const budgetMax = Number(trip.budgetMax)
-                      if (budgetMin < 0) {
-                        alert('El presupuesto mínimo no puede ser menor a 0')
-                        return
-                      }
-                      if (budgetMax < 0) {
-                        alert('El presupuesto máximo no puede ser menor a 0')
-                        return
-                      }
-                      if (budgetMin > budgetMax) {
-                        alert('El presupuesto mínimo no puede ser mayor al máximo')
-                        return
-                      }
-
-                      // Validación de fechas
-                      const today = new Date()
-                      today.setHours(0, 0, 0, 0) // Resetear horas para comparar solo fechas
-                      
-                      const startDate = new Date(trip.startDate)
-                      const endDate = new Date(trip.endDate)
-                      
-                      if (startDate < today) {
-                        alert('La fecha de inicio no puede ser anterior al día de hoy')
-                        return
-                      }
-                      if (endDate < today) {
-                        alert('La fecha de fin no puede ser anterior al día de hoy')
-                        return
-                      }
-                      if (startDate > endDate) {
-                        alert('La fecha de inicio no puede ser posterior a la fecha de fin')
                         return
                       }
 
@@ -1381,19 +1369,19 @@ export default function Dashboard() {
                 </div>
                 <div className="field">
                   <label>Desde</label>
-                  <input type="date" defaultValue={editTripModal.data?.startDate} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, startDate: e.target.value } }))} min={new Date().toISOString().split('T')[0]} />
+                  <input type="date" defaultValue={editTripModal.data?.startDate} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, startDate: e.target.value } }))} />
                 </div>
                 <div className="field">
                   <label>Hasta</label>
-                  <input type="date" defaultValue={editTripModal.data?.endDate} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, endDate: e.target.value } }))} min={new Date().toISOString().split('T')[0]} />
+                  <input type="date" defaultValue={editTripModal.data?.endDate} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, endDate: e.target.value } }))} />
                 </div>
                 <div className="field">
                   <label>Presupuesto mín.</label>
-                  <input type="number" inputMode="numeric" defaultValue={editTripModal.data?.budgetMin ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, budgetMin: e.target.value } }))} min="0" />
+                  <input type="number" inputMode="numeric" defaultValue={editTripModal.data?.budgetMin ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, budgetMin: e.target.value } }))} />
                 </div>
                 <div className="field">
                   <label>Presupuesto máx.</label>
-                  <input type="number" inputMode="numeric" defaultValue={editTripModal.data?.budgetMax ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, budgetMax: e.target.value } }))} min="0" />
+                  <input type="number" inputMode="numeric" defaultValue={editTripModal.data?.budgetMax ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, budgetMax: e.target.value } }))} />
                 </div>
                 <div className="field">
                   <label>Cantidad de personas (máx.)</label>
@@ -1458,42 +1446,6 @@ export default function Dashboard() {
                     }
                     if (!payload.id) { alert('Falta id del viaje para actualizar'); return }
                     if (!payload.creator_id) { alert('Falta creator_id para actualizar este viaje'); return }
-
-                    // Validación de presupuesto
-                    const budgetMin = Number(editTripModal.data?.budgetMin || 0)
-                    const budgetMax = Number(editTripModal.data?.budgetMax || 0)
-                    if (budgetMin < 0) {
-                      alert('El presupuesto mínimo no puede ser menor a 0')
-                      return
-                    }
-                    if (budgetMax < 0) {
-                      alert('El presupuesto máximo no puede ser menor a 0')
-                      return
-                    }
-                    if (budgetMin > budgetMax) {
-                      alert('El presupuesto mínimo no puede ser mayor al máximo')
-                      return
-                    }
-
-                    // Validación de fechas
-                    const today = new Date()
-                    today.setHours(0, 0, 0, 0) // Resetear horas para comparar solo fechas
-                    
-                    const startDate = new Date(editTripModal.data?.startDate)
-                    const endDate = new Date(editTripModal.data?.endDate)
-                    
-                    if (startDate < today) {
-                      alert('La fecha de inicio no puede ser anterior al día de hoy')
-                      return
-                    }
-                    if (endDate < today) {
-                      alert('La fecha de fin no puede ser anterior al día de hoy')
-                      return
-                    }
-                    if (startDate > endDate) {
-                      alert('La fecha de inicio no puede ser posterior a la fecha de fin')
-                      return
-                    }
                     await api.post('/trips/update/', payload)
                     setEditTripModal({ open: false, data: null })
                     await loadTrips()
@@ -1539,18 +1491,20 @@ export default function Dashboard() {
           trip={applyModal.trip}
           isOpen={applyModal.open}
           onClose={() => setApplyModal({ open: false, trip: null })}
-          onSuccess={async () => {
+          onSuccess={async (roomId) => {
             try {
               if (!profile?.user_id) return
               const r = await listRoomsForUser(profile.user_id)
               setRooms(r)
               setJoinDialog({ open: true, title: 'Aplicación enviada', message: 'Abrimos un chat privado con el organizador.' })
-              // Try to open the newly created private room for this application (by latest created private room of the trip)
+              // Open the specific room returned by the backend
               try {
-                const tripId = applyModal?.trip?.id
-                const privateRooms = (r || []).filter((x) => String(x.trip_id) === String(tripId) && (x.is_private === true || x.application_id))
-                const byCreated = [...privateRooms].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                if (byCreated[0]) await openRoom(byCreated[0])
+                if (roomId) {
+                  const targetRoom = (r || []).find((x) => x.id === roomId)
+                  if (targetRoom) {
+                    await openRoom(targetRoom)
+                  }
+                }
               } catch {}
             } catch {}
           }}
