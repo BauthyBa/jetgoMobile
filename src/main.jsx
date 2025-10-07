@@ -27,11 +27,11 @@ const router = createBrowserRouter([
       { path: 'dashboard', element: <Dashboard /> },
       { path: 'u/:userId', element: <PublicProfile /> },
       { path: 'trip/:tripId', element: <TripDetails /> },
-      { path: 'forgot-password', element: <ForgotPassword /> },
-      { path: 'reset-password', element: <ResetPassword /> },
-      
     ],
   },
+  // Rutas de autenticación sin Layout (sin navbar)
+  { path: 'forgot-password', element: <ForgotPassword /> },
+  { path: 'reset-password', element: <ResetPassword /> },
 ])
 
 createRoot(document.getElementById('root')).render(
