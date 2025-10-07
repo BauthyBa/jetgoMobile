@@ -27,14 +27,11 @@ export default function ThemeToggle() {
     })
   }
 
-  const label = theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'Auto'
-
   return (
-    <button onClick={cycleTheme} aria-label="Cambiar tema" className="inline-flex items-center gap-2 px-3 h-9 rounded-md border border-slate-300/60 dark:border-slate-700/60 bg-white/70 dark:bg-slate-800/70 text-slate-800 dark:text-slate-100 hover:bg-white/90 dark:hover:bg-slate-800/90 transition-colors">
-      <span aria-hidden>
+    <button onClick={cycleTheme} aria-label="Cambiar tema" className="inline-flex items-center justify-center w-9 h-9 rounded-md border border-slate-300/60 dark:border-slate-700/60 bg-white/70 dark:bg-slate-800/70 text-slate-800 dark:text-slate-100 hover:bg-white/90 dark:hover:bg-slate-800/90 transition-colors">
+      <span aria-hidden key={theme} className="animate-emoji-pop">
         {theme === 'light' ? '🌞' : theme === 'dark' ? '🌚' : '🌓'}
       </span>
-      <span className="text-sm font-medium">{label}</span>
     </button>
   )
 }
