@@ -19,7 +19,12 @@ export default function Login() {
       await login(email, password)
       navigate('/dashboard')
     } catch (err) {
-      setError(err?.response?.data ? JSON.stringify(err.response.data) : err.message)
+      const status = err?.response?.status
+      if (status === 401) {
+        setError('Usuario o contraseña incorrectos')
+      } else {
+        setError(err?.response?.data ? JSON.stringify(err.response.data) : err.message)
+      }
     } finally {
       setLoading(false)
     }
@@ -107,8 +112,45 @@ export default function Login() {
           </button>
 
           {error && (
-            <div className="mt-4 p-3 bg-red-500/10 border border-red-500/50 rounded-lg">
-              <p className="text-red-400 text-sm text-center">{error}</p>
+            <div
+              role="alert"
+              className="mt-4 w-full overflow-hidden rounded-xl border border-red-500/30 bg-gradient-to-br from-red-900/40 to-red-800/30 shadow-lg shadow-red-900/30 backdrop-blur-sm animate-[fadeIn_.2s_ease-out]"
+            >
+              <div className="flex items-start gap-3 p-4">
+                <div className="shrink-0">
+                  {/* Circle with X icon */}
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-500/20 border border-red-500/40">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5 text-red-300"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="9" className="opacity-40" />
+                      <path d="M15 9l-6 6M9 9l6 6" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-red-200">{error}</p>
+                  <p className="mt-1 text-xs text-red-300/80">Verificá tus datos e intentá nuevamente.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setError(null)}
+                  className="rounded-md p-1 text-red-300/80 hover:text-red-200 hover:bg-red-500/10 transition-colors"
+                  aria-label="Cerrar alerta"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="h-1 w-full bg-gradient-to-r from-red-500/70 via-red-400/70 to-red-500/70" />
             </div>
           )}
         </form>
