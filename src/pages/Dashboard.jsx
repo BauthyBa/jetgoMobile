@@ -431,7 +431,7 @@ export default function Dashboard() {
           <>
             {section === 'inicio' && (
               <div id="inicio" style={{ marginBottom: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 24, marginBottom: 16 }}>
                   <div>
                     <h1 style={{ fontSize: 32, fontWeight: 800 }}>
                       Bienvenido{profile?.meta?.first_name ? (
