@@ -455,33 +455,33 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 sm:p-8 text-white" style={{ display: 'grid', gap: 16 }}>
+      <div className="p-4 sm:p-6 lg:p-8 text-white">
         {error && <pre className="error">{error}</pre>}
         {!error && !profile && <p className="muted">Cargando…</p>}
         {profile && (
           <>
             {section === 'inicio' && (
-              <div id="inicio" style={{ marginBottom: 8 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start' }}>
+              <div id="inicio" className="mb-2">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 lg:gap-8 items-start">
                   <div>
-                    <h1 style={{ fontSize: 32, fontWeight: 800 }}>
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold mb-2">
                       Bienvenido{profile?.meta?.first_name ? (
-                        <span style={{ background: 'linear-gradient(135deg, #3b82f6, #22c55e)', WebkitBackgroundClip: 'text', color: 'transparent' }}>{`, ${profile.meta.first_name}`}</span>
+                        <span className="bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent">{`, ${profile.meta.first_name}`}</span>
                       ) : ''}
                     </h1>
-                    <p className="muted">Aquí está tu resumen de viajes</p>
-                    <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
-                      <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <div style={{ fontSize: 12, color: '#94a3b8' }}>Mis viajes</div>
-                        <div style={{ fontSize: 28, fontWeight: 800 }}>{tripsBase.length}</div>
+                    <p className="muted mb-4">Aquí está tu resumen de viajes</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                      <div className="glass-card p-4 min-h-[88px] flex flex-col justify-center">
+                        <div className="text-xs text-slate-400">Mis viajes</div>
+                        <div className="text-2xl sm:text-3xl font-extrabold">{tripsBase.length}</div>
                       </div>
-                      <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <div style={{ fontSize: 12, color: '#94a3b8' }}>Chats</div>
-                        <div style={{ fontSize: 28, fontWeight: 800 }}>{rooms.length}</div>
+                      <div className="glass-card p-4 min-h-[88px] flex flex-col justify-center">
+                        <div className="text-xs text-slate-400">Chats</div>
+                        <div className="text-2xl sm:text-3xl font-extrabold">{rooms.length}</div>
                       </div>
-                      <div className="glass-card" style={{ padding: 16, minHeight: 88, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        <div style={{ fontSize: 12, color: '#94a3b8' }}>Gastos guardados</div>
-                        <div style={{ fontSize: 28, fontWeight: 800 }}>{expenses.length}</div>
+                      <div className="glass-card p-4 min-h-[88px] flex flex-col justify-center">
+                        <div className="text-xs text-slate-400">Gastos guardados</div>
+                        <div className="text-2xl sm:text-3xl font-extrabold">{expenses.length}</div>
                       </div>
                     </div>
                     <div style={{ marginTop: 16 }}>
@@ -703,17 +703,17 @@ export default function Dashboard() {
             )}
 
             {section === 'trips' && (
-              <section id="trips" className="glass-card" style={{ marginTop: 16 }}>
-                <div style={{ display: 'grid', placeItems: 'center' }}>
-                  <h3 className="page-title" style={{ color: '#60a5fa', margin: 0, textAlign: 'center' }}>
+              <section id="trips" className="glass-card mt-4">
+                <div className="grid place-items-center">
+                  <h3 className="page-title text-blue-400 m-0 text-center">
                     {showMineOnly ? 'Mis Viajes' : 'Viajes Disponibles'}
                   </h3>
                 </div>
-                <div style={{ marginTop: 12 }}>
-                  {trips.length === 0 && <p className="muted" style={{ marginTop: 12, textAlign: 'center' }}>No hay viajes que coincidan.</p>}
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div className="mt-3">
+                  {trips.length === 0 && <p className="muted mt-3 text-center">No hay viajes que coincidan.</p>}
+                  <div className="flex flex-col lg:flex-row gap-3 lg:gap-4 items-start">
                     {/* Botones del lado izquierdo */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 'fit-content' }}>
+                    <div className="flex flex-col sm:flex-row lg:flex-col gap-2 lg:gap-3 w-full lg:w-auto lg:min-w-fit">
                       <Button
                         variant="secondary"
                         onClick={() => {
@@ -738,7 +738,7 @@ export default function Dashboard() {
                     </div>
                     
                     {/* Grid de viajes */}
-                    <div style={{ flex: 1 }}>
+                    <div className="flex-1 w-full">
                       <TripGrid
                         trips={(showMineOnly ? trips : trips.filter((t) => !(t.creatorId && t.creatorId === profile?.user_id))).slice(0, visibleCount)}
                         joiningId={joiningId}

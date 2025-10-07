@@ -82,21 +82,23 @@ export default function ProfileCard({ profile, readOnly = false }) {
   const initialInterestsTokens = useMemo(() => parseListValue(profile?.meta?.interests), [profile?.meta?.interests])
   const initialFavTripsTokens = useMemo(() => parseListValue(profile?.meta?.favorite_travel_styles), [profile?.meta?.favorite_travel_styles])
   return (
-    <GlassCard>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-        <div style={{ width: 80, height: 80, borderRadius: 999, background: 'rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(59,130,246,0.3)' }}>
-          {name ? (
-            <span style={{ fontSize: 28, color: '#3b82f6', fontWeight: 700 }}>{name?.charAt(0)?.toUpperCase()}</span>
-          ) : null}
+    <GlassCard className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+        <div className="flex-shrink-0 flex justify-center sm:justify-start">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+            {name ? (
+              <span className="text-2xl sm:text-3xl text-blue-500 font-bold">{name?.charAt(0)?.toUpperCase()}</span>
+            ) : null}
+          </div>
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
-            <div>
-              {name && <h2 style={{ fontSize: 20, fontWeight: 700 }}>{name}</h2>}
-              {email && <p className="muted" style={{ fontSize: 14 }}>{email}</p>}
-              {location && <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>{location}</p>}
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 sm:justify-between">
+            <div className="min-w-0">
+              {name && <h2 className="text-lg sm:text-xl font-bold truncate">{name}</h2>}
+              {email && <p className="muted text-sm truncate">{email}</p>}
+              {location && <p className="muted text-xs mt-1">{location}</p>}
             </div>
-            <div>
+            <div className="flex-shrink-0">
               {!readOnly && editing ? (
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
@@ -151,105 +153,118 @@ export default function ProfileCard({ profile, readOnly = false }) {
           </div>
 
           {(userId || dni || lastName || birthDate || age) && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
-              {userId && (
-                <div>
-                  <div className="muted" style={{ fontSize: 12 }}>Supabase User ID</div>
-                  <div style={{ fontSize: 13, wordBreak: 'break-all' }}>{userId}</div>
-                </div>
-              )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4 pt-4 border-t border-white/15">
               {dni && (
-                <div>
-                  <div className="muted" style={{ fontSize: 12 }}>DNI</div>
-                  <div style={{ fontSize: 13 }}>{dni}</div>
+                <div className="bg-slate-800/30 rounded-lg p-3">
+                  <div className="muted text-xs">DNI</div>
+                  <div className="text-sm font-medium">{dni}</div>
                 </div>
               )}
               {lastName && (
-                <div>
-                  <div className="muted" style={{ fontSize: 12 }}>Apellido</div>
-                  <div style={{ fontSize: 13 }}>{lastName}</div>
-                </div>
-              )}
-              {birthDate && (
-                <div>
-                  <div className="muted" style={{ fontSize: 12 }}>Fecha de nacimiento</div>
-                  <div style={{ fontSize: 13 }}>{birthDate}</div>
+                <div className="bg-slate-800/30 rounded-lg p-3">
+                  <div className="muted text-xs">Apellido</div>
+                  <div className="text-sm font-medium">{lastName}</div>
                 </div>
               )}
               {age && (
-                <div>
-                  <div className="muted" style={{ fontSize: 12 }}>Edad</div>
-                  <div style={{ fontSize: 13 }}>{age} años</div>
+                <div className="bg-slate-800/30 rounded-lg p-3">
+                  <div className="muted text-xs">Edad</div>
+                  <div className="text-sm font-medium">{age} años</div>
                 </div>
               )}
               {typeof dniVerified === 'boolean' && (
-                <div>
-                  <div className="muted" style={{ fontSize: 12 }}>DNI Verificado</div>
-                  <div style={{ fontSize: 13, color: dniVerified ? '#22c55e' : '#ef4444' }}>{dniVerified ? 'Sí' : 'No'}</div>
+                <div className="bg-slate-800/30 rounded-lg p-3">
+                  <div className="muted text-xs">DNI Verificado</div>
+                  <div className={`text-sm font-medium ${dniVerified ? 'text-green-400' : 'text-red-400'}`}>
+                    {dniVerified ? 'Sí' : 'No'}
+                  </div>
+                </div>
+              )}
+              {birthDate && (
+                <div className="bg-slate-800/30 rounded-lg p-3">
+                  <div className="muted text-xs">Fecha de nacimiento</div>
+                  <div className="text-sm font-medium">{birthDate}</div>
+                </div>
+              )}
+              {userId && (
+                <div className="bg-slate-800/30 rounded-lg p-3 sm:col-span-2 lg:col-span-1">
+                  <div className="muted text-xs">User ID</div>
+                  <div className="text-xs font-mono break-all">{userId}</div>
                 </div>
               )}
             </div>
           )}
 
           {/* Bio e intereses */}
-          <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.15)', display: 'grid', gap: 12 }}>
+          <div className="mt-4 pt-4 border-t border-white/15 space-y-4">
             <div>
-              <div className="muted" style={{ fontSize: 12 }}>Biografía</div>
+              <div className="muted text-xs mb-2">Biografía</div>
               {editing ? (
                 <textarea
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
                   placeholder="Contanos sobre vos..."
-                  rows={4}
-                  className="w-full bg-slate-700 border border-slate-600 text-white placeholder-slate-400 rounded-md px-3 py-2"
+                  rows={3}
+                  className="w-full bg-slate-700/50 border border-slate-600 text-white placeholder-slate-400 rounded-lg px-3 py-2 text-sm"
                   style={{ resize: 'vertical' }}
                   maxLength={500}
                 />
               ) : (
-                <div style={{ fontSize: 13 }}>{(savedOnce ? bio : initialBio) || <span className="muted">Sin biografía</span>}</div>
-              )}
-            </div>
-            <div>
-              <div className="muted" style={{ fontSize: 12 }}>Intereses</div>
-              {editing ? (
-                <input
-                  value={interestsText}
-                  onChange={(e) => setInterestsText(e.target.value)}
-                  placeholder="Ej: senderismo, museos, gastronomía"
-                  className="w-full bg-slate-700 border border-slate-600 text-white placeholder-slate-400 rounded-md px-3 py-2"
-                />
-              ) : (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {(savedOnce ? interestsArray : initialInterestsTokens).length === 0 && (
-                    <span className="muted">Sin intereses</span>
-                  )}
-                  {(savedOnce ? interestsArray : initialInterestsTokens).map((t) => (
-                    <span key={t} className="muted" style={{ border: '1px solid rgba(155, 235, 255, 0.25)', padding: '2px 8px', borderRadius: 999 }}>{t}</span>
-                  ))}
+                <div className="text-sm bg-slate-800/30 rounded-lg p-3 min-h-[60px]">
+                  {(savedOnce ? bio : initialBio) || <span className="muted">Sin biografía</span>}
                 </div>
               )}
             </div>
-            <div>
-              <div className="muted" style={{ fontSize: 12 }}>Tipos de viaje favoritos</div>
-              {editing ? (
-                <input
-                  value={favTripsText}
-                  onChange={(e) => setFavTripsText(e.target.value)}
-                  placeholder="Ej: mochilero, relax, aventura, cultura"
-                  className="w-full bg-slate-700 border border-slate-600 text-white placeholder-slate-400 rounded-md px-3 py-2"
-                />
-              ) : (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {(savedOnce ? favTripsArray : initialFavTripsTokens).length === 0 && (
-                    <span className="muted">Sin preferencias</span>
-                  )}
-                  {(savedOnce ? favTripsArray : initialFavTripsTokens).map((t) => (
-                    <span key={t} className="muted" style={{ border: '1px solid rgba(155, 235, 255, 0.25)', padding: '2px 8px', borderRadius: 999 }}>{t}</span>
-                  ))}
-                </div>
-              )}
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <div className="muted text-xs mb-2">Intereses</div>
+                {editing ? (
+                  <input
+                    value={interestsText}
+                    onChange={(e) => setInterestsText(e.target.value)}
+                    placeholder="Ej: senderismo, museos, gastronomía"
+                    className="w-full bg-slate-700/50 border border-slate-600 text-white placeholder-slate-400 rounded-lg px-3 py-2 text-sm"
+                  />
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {(savedOnce ? interestsArray : initialInterestsTokens).length === 0 && (
+                      <span className="muted text-sm">Sin intereses</span>
+                    )}
+                    {(savedOnce ? interestsArray : initialInterestsTokens).map((t) => (
+                      <span key={t} className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full border border-blue-500/30">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <div className="muted text-xs mb-2">Tipos de viaje favoritos</div>
+                {editing ? (
+                  <input
+                    value={favTripsText}
+                    onChange={(e) => setFavTripsText(e.target.value)}
+                    placeholder="Ej: mochilero, relax, aventura, cultura"
+                    className="w-full bg-slate-700/50 border border-slate-600 text-white placeholder-slate-400 rounded-lg px-3 py-2 text-sm"
+                  />
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {(savedOnce ? favTripsArray : initialFavTripsTokens).length === 0 && (
+                      <span className="muted text-sm">Sin preferencias</span>
+                    )}
+                    {(savedOnce ? favTripsArray : initialFavTripsTokens).map((t) => (
+                      <span key={t} className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full border border-green-500/30">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-            {error && <div className="error" style={{ color: '#ef4444', fontSize: 13 }}>{error}</div>}
+            
+            {error && <div className="text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg p-3">{error}</div>}
           </div>
         </div>
       </div>
