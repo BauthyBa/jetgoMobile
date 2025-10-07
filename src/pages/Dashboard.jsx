@@ -1078,19 +1078,19 @@ export default function Dashboard() {
                 </div>
                 <div className="field">
                   <label>Desde</label>
-                  <input type="date" value={trip.startDate} onChange={(e) => setTrip({ ...trip, startDate: e.target.value })} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }} />
+                  <input type="date" value={trip.startDate} onChange={(e) => setTrip({ ...trip, startDate: e.target.value })} min={new Date().toISOString().split('T')[0]} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }} />
                 </div>
                 <div className="field">
                   <label>Hasta</label>
-                  <input type="date" value={trip.endDate} onChange={(e) => setTrip({ ...trip, endDate: e.target.value })} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }} />
+                  <input type="date" value={trip.endDate} onChange={(e) => setTrip({ ...trip, endDate: e.target.value })} min={new Date().toISOString().split('T')[0]} style={{ color: '#e5e7eb', background: 'rgba(255,255,255,0.06)' }} />
                 </div>
                 <div className="field">
                   <label>Presupuesto mín.</label>
-                  <input type="number" inputMode="numeric" value={trip.budgetMin} onChange={(e) => setTrip({ ...trip, budgetMin: e.target.value })} placeholder="0" style={{ color: '#e5e7eb' }} />
+                  <input type="number" inputMode="numeric" value={trip.budgetMin} onChange={(e) => setTrip({ ...trip, budgetMin: e.target.value })} placeholder="0" min="0" style={{ color: '#e5e7eb' }} />
                 </div>
                 <div className="field">
                   <label>Presupuesto máx.</label>
-                  <input type="number" inputMode="numeric" value={trip.budgetMax} onChange={(e) => setTrip({ ...trip, budgetMax: e.target.value })} placeholder="9999" style={{ color: '#e5e7eb' }} />
+                  <input type="number" inputMode="numeric" value={trip.budgetMax} onChange={(e) => setTrip({ ...trip, budgetMax: e.target.value })} placeholder="9999" min="0" style={{ color: '#e5e7eb' }} />
                 </div>
                 <div className="field">
                   <label>Cantidad de personas (máx.)</label>
@@ -1210,6 +1210,42 @@ export default function Dashboard() {
                       const missing = Object.entries(required).filter(([k, v]) => v == null || String(v).trim() === '').map(([k]) => k)
                       if (missing.length > 0) {
                         alert(`Completá los campos obligatorios: ${missing.join(', ')}`)
+                        return
+                      }
+
+                      // Validación de presupuesto
+                      const budgetMin = Number(trip.budgetMin)
+                      const budgetMax = Number(trip.budgetMax)
+                      if (budgetMin < 0) {
+                        alert('El presupuesto mínimo no puede ser menor a 0')
+                        return
+                      }
+                      if (budgetMax < 0) {
+                        alert('El presupuesto máximo no puede ser menor a 0')
+                        return
+                      }
+                      if (budgetMin > budgetMax) {
+                        alert('El presupuesto mínimo no puede ser mayor al máximo')
+                        return
+                      }
+
+                      // Validación de fechas
+                      const today = new Date()
+                      today.setHours(0, 0, 0, 0) // Resetear horas para comparar solo fechas
+                      
+                      const startDate = new Date(trip.startDate)
+                      const endDate = new Date(trip.endDate)
+                      
+                      if (startDate < today) {
+                        alert('La fecha de inicio no puede ser anterior al día de hoy')
+                        return
+                      }
+                      if (endDate < today) {
+                        alert('La fecha de fin no puede ser anterior al día de hoy')
+                        return
+                      }
+                      if (startDate > endDate) {
+                        alert('La fecha de inicio no puede ser posterior a la fecha de fin')
                         return
                       }
 
@@ -1369,19 +1405,19 @@ export default function Dashboard() {
                 </div>
                 <div className="field">
                   <label>Desde</label>
-                  <input type="date" defaultValue={editTripModal.data?.startDate} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, startDate: e.target.value } }))} />
+                  <input type="date" defaultValue={editTripModal.data?.startDate} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, startDate: e.target.value } }))} min={new Date().toISOString().split('T')[0]} />
                 </div>
                 <div className="field">
                   <label>Hasta</label>
-                  <input type="date" defaultValue={editTripModal.data?.endDate} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, endDate: e.target.value } }))} />
+                  <input type="date" defaultValue={editTripModal.data?.endDate} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, endDate: e.target.value } }))} min={new Date().toISOString().split('T')[0]} />
                 </div>
                 <div className="field">
                   <label>Presupuesto mín.</label>
-                  <input type="number" inputMode="numeric" defaultValue={editTripModal.data?.budgetMin ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, budgetMin: e.target.value } }))} />
+                  <input type="number" inputMode="numeric" defaultValue={editTripModal.data?.budgetMin ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, budgetMin: e.target.value } }))} min="0" />
                 </div>
                 <div className="field">
                   <label>Presupuesto máx.</label>
-                  <input type="number" inputMode="numeric" defaultValue={editTripModal.data?.budgetMax ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, budgetMax: e.target.value } }))} />
+                  <input type="number" inputMode="numeric" defaultValue={editTripModal.data?.budgetMax ?? ''} onChange={(e) => setEditTripModal((m) => ({ ...m, data: { ...m.data, budgetMax: e.target.value } }))} min="0" />
                 </div>
                 <div className="field">
                   <label>Cantidad de personas (máx.)</label>
@@ -1446,6 +1482,42 @@ export default function Dashboard() {
                     }
                     if (!payload.id) { alert('Falta id del viaje para actualizar'); return }
                     if (!payload.creator_id) { alert('Falta creator_id para actualizar este viaje'); return }
+
+                    // Validación de presupuesto
+                    const budgetMin = Number(editTripModal.data?.budgetMin || 0)
+                    const budgetMax = Number(editTripModal.data?.budgetMax || 0)
+                    if (budgetMin < 0) {
+                      alert('El presupuesto mínimo no puede ser menor a 0')
+                      return
+                    }
+                    if (budgetMax < 0) {
+                      alert('El presupuesto máximo no puede ser menor a 0')
+                      return
+                    }
+                    if (budgetMin > budgetMax) {
+                      alert('El presupuesto mínimo no puede ser mayor al máximo')
+                      return
+                    }
+
+                    // Validación de fechas
+                    const today = new Date()
+                    today.setHours(0, 0, 0, 0) // Resetear horas para comparar solo fechas
+                    
+                    const startDate = new Date(editTripModal.data?.startDate)
+                    const endDate = new Date(editTripModal.data?.endDate)
+                    
+                    if (startDate < today) {
+                      alert('La fecha de inicio no puede ser anterior al día de hoy')
+                      return
+                    }
+                    if (endDate < today) {
+                      alert('La fecha de fin no puede ser anterior al día de hoy')
+                      return
+                    }
+                    if (startDate > endDate) {
+                      alert('La fecha de inicio no puede ser posterior a la fecha de fin')
+                      return
+                    }
                     await api.post('/trips/update/', payload)
                     setEditTripModal({ open: false, data: null })
                     await loadTrips()
