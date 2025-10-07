@@ -77,6 +77,7 @@ export default function Dashboard() {
   const [joinDialog, setJoinDialog] = useState({ open: false, title: '', message: '' })
   const [applyModal, setApplyModal] = useState({ open: false, trip: null })
   const [applicationStatuses, setApplicationStatuses] = useState({})
+  const [applicationOrganizer, setApplicationOrganizer] = useState({})
 
   // Autocomplete state for country and cities
   const [isoCountry, setIsoCountry] = useState('')
@@ -324,6 +325,18 @@ export default function Dashboard() {
       setMessages(initial)
       await updateApplicationStatusesFromMessages(initial)
       await resolveNamesForMessages(initial)
+      // Pre-resolve organizer permission for application actions
+      try {
+        if (room?.application_id) {
+          const { data: appRows } = await supabase.from('applications').select('trip_id').eq('id', room.application_id).limit(1)
+          const tripId = (appRows || [])[0]?.trip_id
+          if (tripId) {
+            const { data: tripRows } = await supabase.from('trips').select('creator_id').eq('id', tripId).limit(1)
+            const organizerId = (tripRows || [])[0]?.creator_id
+            setApplicationOrganizer((prev) => ({ ...prev, [room.application_id]: String(organizerId) === String(profile?.user_id) }))
+          }
+        }
+      } catch {}
       if (unsub) {
         try { unsub() } catch {}
       }
@@ -592,7 +605,18 @@ export default function Dashboard() {
                                   {(() => {
                                     try {
                                       const isPrivate = !!(activeRoom?.is_private || activeRoom?.application_id)
-                                      const isOrganizer = !!(activeRoom?.creator_id && profile?.user_id && String(activeRoom.creator_id) === String(profile.user_id))
+                                      let isOrganizer = false
+                                      if (isPrivate && activeRoom?.application_id) {
+                                        try {
+                                          const cached = applicationOrganizer[activeRoom.application_id]
+                                          if (typeof cached === 'boolean') {
+                                            isOrganizer = cached
+                                          } else {
+                                            // Resolve without await in render: pre-resolve organizer in effect on open
+                                            isOrganizer = false
+                                          }
+                                        } catch {}
+                                      }
                                       const status = applicationStatuses[applicationId]
                                       const isFinal = status === 'accepted' || status === 'rejected'
                                       if (isApp && applicationId && isFinal) {
@@ -1467,18 +1491,20 @@ export default function Dashboard() {
           trip={applyModal.trip}
           isOpen={applyModal.open}
           onClose={() => setApplyModal({ open: false, trip: null })}
-          onSuccess={async () => {
+          onSuccess={async (roomId) => {
             try {
               if (!profile?.user_id) return
               const r = await listRoomsForUser(profile.user_id)
               setRooms(r)
               setJoinDialog({ open: true, title: 'Aplicación enviada', message: 'Abrimos un chat privado con el organizador.' })
-              // Try to open the newly created private room for this application (by latest created private room of the trip)
+              // Open the specific room returned by the backend
               try {
-                const tripId = applyModal?.trip?.id
-                const privateRooms = (r || []).filter((x) => String(x.trip_id) === String(tripId) && (x.is_private === true || x.application_id))
-                const byCreated = [...privateRooms].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                if (byCreated[0]) await openRoom(byCreated[0])
+                if (roomId) {
+                  const targetRoom = (r || []).find((x) => x.id === roomId)
+                  if (targetRoom) {
+                    await openRoom(targetRoom)
+                  }
+                }
               } catch {}
             } catch {}
           }}
