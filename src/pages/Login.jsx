@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { login } from '../services/api'
 import { signInWithGoogle } from '../services/supabase'
 
@@ -9,7 +9,18 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [successMessage, setSuccessMessage] = useState('')
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Mostrar mensaje de éxito si viene de reset password
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message)
+      // Limpiar el mensaje después de 5 segundos
+      setTimeout(() => setSuccessMessage(''), 5000)
+    }
+  }, [location.state])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -91,6 +102,16 @@ export default function Login() {
             </div>
           </div>
 
+          {/* Enlace de olvidaste contraseña */}
+          <div className="text-right">
+            <Link 
+              to="/forgot-password" 
+              className="text-sm text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
@@ -113,6 +134,47 @@ export default function Login() {
             <img src="/google.svg" alt="Google" className="w-6 h-6" />
             Continuar con Google
           </button>
+
+          {/* Mensaje de éxito */}
+          {successMessage && (
+            <div
+              role="alert"
+              className="mt-4 w-full overflow-hidden rounded-xl border border-green-500/30 bg-gradient-to-br from-green-900/40 to-green-800/30 shadow-lg shadow-green-900/30 backdrop-blur-sm animate-[fadeIn_.2s_ease-out]"
+            >
+              <div className="flex items-start gap-3 p-4">
+                <div className="shrink-0">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-500/20 border border-green-500/40">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      className="h-5 w-5 text-green-300"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-200">{successMessage}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSuccessMessage('')}
+                  className="rounded-md p-1 text-green-300/80 hover:text-green-200 hover:bg-green-500/10 transition-colors"
+                  aria-label="Cerrar alerta"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="h-1 w-full bg-gradient-to-r from-green-500/70 via-green-400/70 to-green-500/70" />
+            </div>
+          )}
 
           {error && (
             <div
