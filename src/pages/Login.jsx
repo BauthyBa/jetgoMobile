@@ -20,10 +20,13 @@ export default function Login() {
       navigate('/dashboard')
     } catch (err) {
       const status = err?.response?.status
+      const data = err?.response?.data
       if (status === 401) {
-        setError('Usuario o contraseña incorrectos')
+        setError('Usuario y/o contraseña inválidos')
+      } else if (data?.non_field_errors && Array.isArray(data.non_field_errors)) {
+        setError('Usuario y/o contraseña inválidos')
       } else {
-        setError(err?.response?.data ? JSON.stringify(err.response.data) : err.message)
+        setError(data ? (typeof data === 'string' ? data : JSON.stringify(data)) : err.message)
       }
     } finally {
       setLoading(false)
