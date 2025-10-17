@@ -124,6 +124,33 @@ body::before {
   100% { transform: scale(1) rotate(0deg); }
 }
 
+@keyframes slideInFromLeft {
+  0% { 
+    transform: translateX(-100%); 
+    opacity: 0; 
+  }
+  100% { 
+    transform: translateX(0); 
+    opacity: 1; 
+  }
+}
+
+@keyframes slideInFromTop {
+  0% { 
+    transform: translateY(-100%); 
+    opacity: 0; 
+  }
+  100% { 
+    transform: translateY(0); 
+    opacity: 1; 
+  }
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
 a { color: hsl(var(--primary)); text-decoration: none; }
 a:hover { color: hsl(var(--primary-glow)); }
 
@@ -225,6 +252,9 @@ h1 {
     box-shadow: 0 8px 24px rgba(0, 164, 224, 0.45), inset 0 0 0 1px rgba(255,255,255,0.06);
   }
   .animate-emoji-pop { animation: emoji-pop 200ms ease-out; }
+  .animate-slideInFromLeft { animation: slideInFromLeft 0.4s ease-out; }
+  .animate-slideInFromTop { animation: slideInFromTop 0.3s ease-out; }
+  .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
 }
 
 /* Text truncation helpers */
