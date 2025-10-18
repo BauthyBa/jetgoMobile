@@ -2,6 +2,8 @@
 
 Aplicación frontend de JetGo construida con React + Vite. Incluye landing pública, autenticación (backend y Google vía Supabase), verificación de identidad (DNI), dashboard con chats en tiempo real y gestión/listado de viajes.
 
+> Este repositorio replica el código de [`jetgoFront`](https://github.com/BauthyBa/jetgoFront) y mantiene la integración con Capacitor/Android (carpeta `android/`) para empaquetar la aplicación como app móvil.
+
 ### Stack
 - React 19 + Vite 7
 - React Router 7
@@ -50,6 +52,12 @@ npm run preview
 
 # Linter
 npm run lint
+
+# Sincronizar Capacitor con Android/iOS
+npm run cap:sync
+
+# Ejecutar Android (requiere emulador/dispositivo configurado)
+npm run cap:run
 ```
 
 ### Estructura del proyecto
