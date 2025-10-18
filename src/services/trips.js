@@ -54,6 +54,12 @@ export async function listTrips() {
   return trips.map(normalizeTrip).filter(Boolean)
 }
 
+export async function getUserParticipatingTrips() {
+  const { data } = await api.get('/trips/my-participating/')
+  const trips = Array.isArray(data?.trips) ? data.trips : []
+  return trips.map(normalizeTrip).filter(Boolean)
+}
+
 export async function joinTrip(tripId, userId) {
   const { data } = await api.post('/trips/join/', { trip_id: tripId, user_id: userId })
   return data
@@ -64,6 +70,12 @@ export async function leaveTrip(tripId, userId) {
   return data
 }
 
+
+// Create trip
+export async function createTrip(payload) {
+  const { data } = await api.post('/trips/create/', payload)
+  return data
+}
 
 // Update trip (frontend expects backend endpoint to exist; if not, caller should handle 404)
 export async function updateTrip(payload) {

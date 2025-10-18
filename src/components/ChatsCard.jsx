@@ -40,3 +40,4 @@ export default function ChatsCard({ title = 'Chats', rooms = [], onOpen }) {
   )
 }
 
+

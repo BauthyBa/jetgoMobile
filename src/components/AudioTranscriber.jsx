@@ -178,4 +178,3 @@ const AudioTranscriber = ({ onTranscriptionComplete, onCancel }) => {
 }
 
 export default AudioTranscriber
-

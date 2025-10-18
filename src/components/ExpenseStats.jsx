@@ -174,4 +174,3 @@ export default function ExpenseStats({ tripId, userNames = {} }) {
     </div>
   )
 }
-

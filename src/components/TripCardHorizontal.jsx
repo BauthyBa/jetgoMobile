@@ -235,4 +235,3 @@ export default function TripCardHorizontal({ trip, onJoin, onLeave, joining, lea
     </div>
   )
 }
-

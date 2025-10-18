@@ -70,4 +70,3 @@ export default function SoundWaves({ isActive, intensity = 1 }) {
     </div>
   )
 }
-

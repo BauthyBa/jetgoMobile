@@ -324,4 +324,3 @@ export default function FriendRequestsPanel({ currentUser }) {
     </div>
   )
 }
-

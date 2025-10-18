@@ -26,22 +26,28 @@ export async function listRoomsForUser(userId) {
     const privateRooms = result.filter((r) => r && (r.is_private === true || r.application_id))
     for (const pr of privateRooms) {
       try {
-        const { data: mems } = await supabase
-          .from('chat_members')
-          .select('user_id')
+        // Query direct_conversations to find the other user
+        const { data: convs } = await supabase
+          .from('direct_conversations')
+          .select('user_a,user_b')
           .eq('room_id', pr.id)
-        const ids = (mems || []).map((m) => m.user_id)
-        // Pick the other user id (not the creator if possible)
-        const otherId = ids.find((id) => id && id !== pr.creator_id) || ids[0]
-        if (otherId) {
-          const { data: users } = await supabase
-            .from('User')
-            .select('userid,nombre,apellido')
-            .eq('userid', otherId)
-          const u = (users || [])[0]
-          if (u) {
-            const full = [u.nombre, u.apellido].filter(Boolean).join(' ').trim()
-            if (full) pr.display_name = full
+          .limit(1)
+        
+        const conv = (convs || [])[0]
+        if (conv) {
+          // Pick the other user: if I'm user_a, pick user_b, and vice versa
+          const otherId = String(conv.user_a) === String(userId) ? conv.user_b : conv.user_a
+          
+          if (otherId) {
+            const { data: users } = await supabase
+              .from('User')
+              .select('userid,nombre,apellido')
+              .eq('userid', otherId)
+            const u = (users || [])[0]
+            if (u) {
+              const full = [u.nombre, u.apellido].filter(Boolean).join(' ').trim()
+              if (full) pr.display_name = full
+            }
           }
         }
       } catch {}
@@ -72,7 +78,7 @@ export async function createRoom(name) {
 export async function fetchMessages(roomId) {
   const { data, error } = await supabase
     .from('chat_messages')
-    .select('id, room_id, user_id, content, created_at')
+    .select('id, room_id, user_id, content, created_at, is_file, file_url, file_name, file_type, file_size')
     .eq('room_id', roomId)
     .order('created_at', { ascending: true })
   if (error) throw error
@@ -128,6 +134,161 @@ export function subscribeToRoomMessages(roomId, onInsert) {
 export async function inviteByEmail(roomId, email, inviterId) {
   const { data } = await api.post('/chat/invite/', { room_id: roomId, email, inviter_id: inviterId })
   return data
+}
+
+// Nuevas funciones para manejo de archivos
+export async function uploadChatFile(file, roomId) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('room_id', roomId)
+  
+  const { data } = await api.post('/chat/upload-file/', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    }
+  })
+  return data
+}
+
+export async function sendMessageWithFile(roomId, content, fileData) {
+  const { data } = await api.post('/chat/send-message/', {
+    room_id: roomId,
+    content: content,
+    file_data: fileData
+  })
+  return data
+}
+
+export async function getChatRooms() {
+  const { data } = await api.get('/chat/rooms/')
+  return data
+}
+
+export async function getChatMessages(roomId) {
+  const { data } = await api.get(`/chat/rooms/${roomId}/messages/`)
+  return data
+}
+
+export async function deleteChatFile(messageId) {
+  const { data } = await api.delete(`/chat/messages/${messageId}/delete-file/`)
+  return data
+}
+
+export async function getRoomFileStats(roomId) {
+  const { data } = await api.get(`/chat/rooms/${roomId}/file-stats/`)
+  return data
+}
+
+// Función para obtener o crear un chat directo entre dos usuarios
+export async function getOrCreateDirectRoom(userId1, userId2) {
+  try {
+    console.log('🔍 Buscando conversación directa entre:', userId1, 'y', userId2)
+    
+    // Primero verificar si ya existe una conversación directa
+    // Buscar en ambas direcciones (user_a/user_b pueden estar en cualquier orden)
+    const { data: existingConvs, error: convError } = await supabase
+      .from('direct_conversations')
+      .select('room_id')
+      .or(`and(user_a.eq.${userId1},user_b.eq.${userId2}),and(user_a.eq.${userId2},user_b.eq.${userId1})`)
+      .limit(1)
+
+    console.log('🔍 Resultado búsqueda conversación:', { existingConvs, convError })
+
+    if (existingConvs && existingConvs.length > 0 && !convError) {
+      const roomId = existingConvs[0].room_id
+      console.log('✅ Conversación existente encontrada, room_id:', roomId)
+      
+      // Obtener detalles de la sala
+      const { data: room, error: roomFetchError } = await supabase
+        .from('chat_rooms')
+        .select('*')
+        .eq('id', roomId)
+        .single()
+      
+      if (room && !roomFetchError) {
+        return room
+      }
+    }
+
+    console.log('📝 No existe conversación, creando nueva sala...')
+    
+    // Si no existe, crear una nueva sala de chat
+    const { data: newRoom, error: roomError } = await supabase
+      .from('chat_rooms')
+      .insert([{
+        name: 'Chat directo',
+        is_private: true,
+        is_group: false,
+        creator_id: userId1
+      }])
+      .select()
+      .single()
+
+    if (roomError) {
+      console.error('❌ Error creando sala:', roomError)
+      throw roomError
+    }
+
+    console.log('✅ Sala creada:', newRoom.id)
+
+    // Verificar qué miembros ya existen
+    const { data: existingMembers } = await supabase
+      .from('chat_members')
+      .select('user_id')
+      .eq('room_id', newRoom.id)
+      .in('user_id', [userId1, userId2])
+
+    const existingUserIds = new Set(existingMembers?.map(m => m.user_id) || [])
+    console.log('🔍 Miembros existentes:', Array.from(existingUserIds))
+
+    // Agregar solo los miembros que no existen
+    const membersToAdd = []
+    if (!existingUserIds.has(userId1)) {
+      membersToAdd.push({ room_id: newRoom.id, user_id: userId1, role: 'member' })
+    }
+    if (!existingUserIds.has(userId2)) {
+      membersToAdd.push({ room_id: newRoom.id, user_id: userId2, role: 'member' })
+    }
+
+    console.log('📝 Miembros a agregar:', membersToAdd.length)
+
+    if (membersToAdd.length > 0) {
+      const { error: membersError } = await supabase
+        .from('chat_members')
+        .insert(membersToAdd)
+
+      if (membersError) {
+        console.error('❌ Error agregando miembros:', membersError)
+        throw membersError
+      }
+
+      console.log('✅ Miembros agregados exitosamente:', membersToAdd.length)
+    } else {
+      console.log('✅ Todos los miembros ya existen')
+    }
+
+    // Crear entrada en direct_conversations (esto puede fallar por RLS, pero no es crítico)
+    const { error: dcError } = await supabase
+      .from('direct_conversations')
+      .insert([{
+        user_a: userId1,
+        user_b: userId2,
+        room_id: newRoom.id
+      }])
+
+    if (dcError) {
+      console.error('⚠️ Error creando entrada en direct_conversations:', dcError)
+      console.warn('⚠️ Esto puede ser un problema de permisos RLS, pero la sala existe')
+      // No lanzamos el error aquí porque la sala ya fue creada y los miembros agregados
+    } else {
+      console.log('✅ Entrada en direct_conversations creada')
+    }
+
+    return newRoom
+  } catch (error) {
+    console.error('❌ Error creating direct room:', error)
+    throw error
+  }
 }
 
 

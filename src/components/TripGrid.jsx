@@ -2,7 +2,7 @@ import TripCard from './TripCard'
 
 export default function TripGrid({ trips, onJoin, onLeave, joiningId, leavingId, onEdit, canEdit, isMemberFn, isOwnerFn, onApply, hasAppliedFn }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 justify-center">
+    <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, 260px)', justifyContent: 'center' }}>
       {(trips || []).map((t) => (
         <TripCard
           key={t.id}

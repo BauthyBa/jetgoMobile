@@ -74,7 +74,7 @@ export default function ForgotPassword() {
               to="/login"
               className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300 text-base font-medium transition-colors hover:underline"
             >
-              ← Volver al login
+              Ir al login
             </Link>
           </div>
         ) : (
@@ -143,7 +143,7 @@ export default function ForgotPassword() {
         <p className="text-center text-base text-slate-400 mt-8">
           ¿Recordaste tu contraseña?{' '}
           <Link to="/login" className="text-blue-400 hover:text-blue-300 font-medium hover:underline transition-colors">
-            Volver al login
+            Ir al login
           </Link>
         </p>
       </div>

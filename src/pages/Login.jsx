@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { login } from '../services/api'
-import { signInWithGoogle, handleAuthCallback } from '../services/supabase'
-import { App } from '@capacitor/app'
+import { signInWithGoogle } from '../services/supabase'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -23,76 +22,13 @@ export default function Login() {
     }
   }, [location.state])
 
-  // Manejar callback de autenticación cuando la app regresa del navegador
-  useEffect(() => {
-    let timeoutId = null
-    
-    const handleAppResume = async () => {
-      console.log('🔄 App resumida, verificando autenticación...')
-      try {
-        // Esperar un poco más para que la autenticación se procese
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        
-        const session = await handleAuthCallback()
-        if (session) {
-          console.log('✅ Usuario autenticado, redirigiendo al dashboard')
-          navigate('/dashboard')
-        } else {
-          console.log('⚠️ No se encontró sesión activa')
-        }
-      } catch (err) {
-        console.error('❌ Error al verificar autenticación:', err)
-      }
-    }
-
-    // Escuchar cuando la app se resume (regresa del navegador)
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('👁️ App visible, verificando autenticación...')
-        // Limpiar timeout anterior si existe
-        if (timeoutId) {
-          clearTimeout(timeoutId)
-        }
-        // Esperar un poco antes de verificar
-        timeoutId = setTimeout(handleAppResume, 1000)
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    
-    // Listener de Capacitor para cuando la app se resume
-    const handleAppStateChange = async (state) => {
-      console.log('📱 App state changed:', state)
-      if (state.isActive) {
-        console.log('🔄 App activa, verificando autenticación...')
-        if (timeoutId) {
-          clearTimeout(timeoutId)
-        }
-        timeoutId = setTimeout(handleAppResume, 1000)
-      }
-    }
-    
-    App.addListener('appStateChange', handleAppStateChange)
-    
-    // También verificar inmediatamente al cargar
-    handleAppResume()
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      App.removeAllListeners()
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
-    }
-  }, [navigate])
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
     try {
       await login(email, password)
-      navigate('/dashboard')
+      navigate('/')
     } catch (err) {
       const status = err?.response?.status
       const data = err?.response?.data
@@ -187,13 +123,9 @@ export default function Login() {
           <button
             type="button"
             onClick={async () => {
-              console.log('🔴 BOTÓN GOOGLE PRESIONADO')
               try {
-                console.log('🔴 LLAMANDO A signInWithGoogle...')
-                await signInWithGoogle('/dashboard')
-                console.log('🔴 signInWithGoogle completado')
+                await signInWithGoogle('/')
               } catch (e) {
-                console.error('🔴 ERROR en signInWithGoogle:', e)
                 setError(e.message)
               }
             }}
