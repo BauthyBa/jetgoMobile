@@ -735,7 +735,7 @@ export default function ModernChatPage() {
 
   return (
     <div className="relative h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
-      <Navigation />
+      {!isChatOpen && <Navigation />}
       <ConnectionStatus />
       {error && (
         <div className="absolute top-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-xl border border-red-500/40 bg-red-950/80 px-4 py-3 text-sm text-red-100 shadow-lg">
@@ -942,23 +942,22 @@ export default function ModernChatPage() {
               </div>
             </div>
 
-            <div
-              className="flex-1 flex flex-col min-h-0 bg-slate-900/70"
-              style={{
-                backgroundImage:
-                  'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.08) 25%, transparent 25%, transparent 50%, rgba(59, 130, 246, 0.06) 50%, rgba(59, 130, 246, 0.06) 75%, transparent 75%, transparent 100%)',
-                backgroundSize: '48px 48px',
-              }}
-            >
-              {showExpenses ? (
-                <div className="flex-1 overflow-hidden">
-                  <ChatExpenses tripId={activeRoom?.trip_id} roomId={activeRoomId} userId={profile?.user_id} userNames={userNames} />
-                </div>
-              ) : (
-                <>
-                  <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
-                    <div className="mx-auto flex max-w-4xl flex-col gap-4 pb-10">
-                        {messages.map((message) => {
+            {showExpenses ? (
+              <div className="flex-1 overflow-hidden bg-slate-900/70">
+                <ChatExpenses tripId={activeRoom?.trip_id} roomId={activeRoomId} userId={profile?.user_id} userNames={userNames} />
+              </div>
+            ) : (
+              <div
+                className="flex flex-1 flex-col bg-slate-900/70"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.08) 25%, transparent 25%, transparent 50%, rgba(59, 130, 246, 0.06) 50%, rgba(59, 130, 246, 0.06) 75%, transparent 75%, transparent 100%)',
+                  backgroundSize: '48px 48px',
+                }}
+              >
+                <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+                  <div className="mx-auto flex max-w-4xl flex-col gap-4 pb-8">
+                    {messages.map((message) => {
                           const isOwn = profile?.user_id && String(message.user_id) === String(profile.user_id)
                           const isApplication = typeof message?.content === 'string' && message.content.startsWith('APP|')
                           const isApplicationStatus =
@@ -1217,99 +1216,98 @@ export default function ModernChatPage() {
                             <p className="text-slate-500 text-xs mt-1">¡Sé el primero en escribir algo!</p>
                           </div>
                         )}
-                      <div ref={messageEndRef} />
+                    <div ref={messageEndRef} />
+                  </div>
+                </div>
+
+                <div className="flex-shrink-0 border-t border-slate-700/60 bg-slate-900/85 px-4 py-4 backdrop-blur-xl sm:px-6">
+                  <div className="mx-auto max-w-4xl">
+                    {showAudioRecorder && (
+                      <div className="mb-4">
+                        <AudioRecorder onAudioRecorded={handleAudioRecorded} onCancel={handleAudioCancel} />
+                      </div>
+                    )}
+                    {showAudioTranscriber && (
+                      <div className="mb-4">
+                        <AudioTranscriber
+                          onTranscriptionComplete={handleTranscriptionComplete}
+                          onCancel={handleTranscriptionCancel}
+                        />
+                      </div>
+                    )}
+                    <div className="flex items-end gap-3">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        accept="image/*,application/pdf,.doc,.docx,.txt"
+                        onChange={handleFileUpload}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="h-12 w-12 shrink-0 rounded-full bg-slate-800/70 text-lg text-slate-200 hover:bg-slate-700/80"
+                      >
+                        📎
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setShowAudioRecorder((prev) => !prev)}
+                        className="h-12 w-12 shrink-0 rounded-full bg-slate-800/70 text-lg text-slate-200 hover:bg-slate-700/80"
+                      >
+                        🎤
+                      </Button>
+                      <div className="relative flex-1">
+                        <Input
+                          value={newMessage}
+                          onChange={(event) => setNewMessage(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' && !event.shiftKey) {
+                              event.preventDefault()
+                              handleSend()
+                            }
+                          }}
+                          placeholder="Escribí un mensaje..."
+                          className="rounded-full border-slate-700 bg-slate-800/60 py-3 pl-5 pr-24 text-slate-200 placeholder:text-slate-500 focus:border-emerald-400/60"
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-12 top-1/2 -translate-y-1/2 text-xl text-slate-400 transition-colors hover:text-emerald-300"
+                          onClick={() => setShowAudioTranscriber((prev) => !prev)}
+                          title="Transcribir voz"
+                        >
+                          🎙️
+                        </button>
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xl text-slate-400 transition-colors hover:text-emerald-300"
+                          onClick={() => setShowEmojiPicker((prev) => !prev)}
+                          title="Agregar emoji"
+                        >
+                          😊
+                        </button>
+                        <EmojiPicker
+                          isOpen={showEmojiPicker}
+                          onClose={() => setShowEmojiPicker(false)}
+                          onEmojiSelect={(emoji) => {
+                            setNewMessage((prev) => prev + emoji)
+                            setShowEmojiPicker(false)
+                          }}
+                        />
+                      </div>
+                      <Button
+                        onClick={handleSend}
+                        className="h-12 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 font-semibold text-white hover:from-emerald-600 hover:to-emerald-700"
+                      >
+                        Enviar
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="flex-shrink-0 border-t border-slate-700/60 bg-slate-900/85 px-4 py-4 backdrop-blur-xl sm:px-6">
-                      <div className="max-w-4xl mx-auto">
-                        {showAudioRecorder && (
-                          <div className="mb-4">
-                            <AudioRecorder onAudioRecorded={handleAudioRecorded} onCancel={handleAudioCancel} />
-                          </div>
-                        )}
-                        {showAudioTranscriber && (
-                          <div className="mb-4">
-                            <AudioTranscriber
-                              onTranscriptionComplete={handleTranscriptionComplete}
-                              onCancel={handleTranscriptionCancel}
-                            />
-                          </div>
-                        )}
-                        <div className="flex items-end gap-3">
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            className="hidden"
-                            accept="image/*,application/pdf,.doc,.docx,.txt"
-                            onChange={handleFileUpload}
-                          />
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="shrink-0 h-12 w-12 rounded-full bg-slate-800/70 text-lg text-slate-200 hover:bg-slate-700/80"
-                          >
-                            📎
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() => setShowAudioRecorder((prev) => !prev)}
-                            className="shrink-0 h-12 w-12 rounded-full bg-slate-800/70 text-lg text-slate-200 hover:bg-slate-700/80"
-                          >
-                            🎤
-                          </Button>
-                          <div className="relative flex-1">
-                            <Input
-                              value={newMessage}
-                              onChange={(event) => setNewMessage(event.target.value)}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter' && !event.shiftKey) {
-                                  event.preventDefault()
-                                  handleSend()
-                                }
-                              }}
-                              placeholder="Escribí un mensaje..."
-                              className="rounded-full border-slate-700 bg-slate-800/60 py-3 pl-5 pr-24 text-slate-200 placeholder:text-slate-500 focus:border-emerald-400/60"
-                            />
-                            <button
-                              type="button"
-                              className="absolute right-12 top-1/2 -translate-y-1/2 text-xl text-slate-400 transition-colors hover:text-emerald-300"
-                              onClick={() => setShowAudioTranscriber((prev) => !prev)}
-                              title="Transcribir voz"
-                            >
-                              🎙️
-                            </button>
-                            <button
-                              type="button"
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-xl text-slate-400 transition-colors hover:text-emerald-300"
-                              onClick={() => setShowEmojiPicker((prev) => !prev)}
-                              title="Agregar emoji"
-                            >
-                              😊
-                            </button>
-                            <EmojiPicker
-                              isOpen={showEmojiPicker}
-                              onClose={() => setShowEmojiPicker(false)}
-                              onEmojiSelect={(emoji) => {
-                                setNewMessage((prev) => prev + emoji)
-                                setShowEmojiPicker(false)
-                              }}
-                            />
-                          </div>
-                          <Button
-                            onClick={handleSend}
-                            className="h-12 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 font-semibold text-white hover:from-emerald-600 hover:to-emerald-700"
-                          >
-                            Enviar
-                          </Button>
-                        </div>
-                      </div>
-                  </div>
-                </>
-              )}
-            </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
