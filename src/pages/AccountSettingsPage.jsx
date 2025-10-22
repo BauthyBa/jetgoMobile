@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getSession, supabase } from '../services/supabase'
-import { Bell, Shield, Key, Download, Trash2, User, Mail, Phone, Globe } from 'lucide-react'
+import { Bell, Shield, Key, Download, Trash2, User, Mail, Phone, Globe, Sun, Moon, Monitor, LogOut } from 'lucide-react'
 
 export default function AccountSettingsPage() {
   const [profile, setProfile] = useState(null)
@@ -10,7 +10,28 @@ export default function AccountSettingsPage() {
   const [downloadingTrips, setDownloadingTrips] = useState(false)
   const [downloadingData, setDownloadingData] = useState(false)
   const [userTrips, setUserTrips] = useState([])
+  const [theme, setTheme] = useState('system')
+  const [systemPrefersDark, setSystemPrefersDark] = useState(false)
   const navigate = useNavigate()
+
+  const applyThemePreference = useCallback((value) => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const shouldUseDark = value === 'dark' || (value === 'system' && prefersDark)
+    document.documentElement.classList.toggle('dark', shouldUseDark)
+  }, [])
+
+  const broadcastThemeChange = useCallback((value) => {
+    if (typeof window === 'undefined') return
+    window.dispatchEvent(new CustomEvent('theme:changed', { detail: value }))
+  }, [])
+
+  const setThemePreference = useCallback((nextTheme) => {
+    setTheme(nextTheme)
+    try { localStorage.setItem('theme', nextTheme) } catch {}
+    applyThemePreference(nextTheme)
+    broadcastThemeChange(nextTheme)
+  }, [applyThemePreference, broadcastThemeChange])
 
   useEffect(() => {
     async function loadProfile() {
@@ -63,6 +84,62 @@ export default function AccountSettingsPage() {
 
     loadProfile()
   }, [navigate])
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('theme') || 'system'
+      setTheme(stored)
+      applyThemePreference(stored)
+      broadcastThemeChange(stored)
+    } catch {
+      applyThemePreference('system')
+    }
+  }, [applyThemePreference, broadcastThemeChange])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = (event) => setSystemPrefersDark(event.matches)
+    setSystemPrefersDark(media.matches)
+    media.addEventListener('change', handleChange)
+    return () => media.removeEventListener('change', handleChange)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const handleThemeEvent = (event) => {
+      const next = event?.detail
+      if (!next) return
+      setTheme(next)
+    }
+    window.addEventListener('theme:changed', handleThemeEvent)
+    return () => window.removeEventListener('theme:changed', handleThemeEvent)
+  }, [])
+
+  const handleThemeSelect = (value) => {
+    setThemePreference(value)
+  }
+
+  const themeOptions = [
+    {
+      value: 'light',
+      label: 'Tema claro',
+      description: 'Colores brillantes y tarjetas luminosas.',
+      icon: Sun,
+    },
+    {
+      value: 'dark',
+      label: 'Tema oscuro',
+      description: 'Ideal para ambientes con poca luz.',
+      icon: Moon,
+    },
+    {
+      value: 'system',
+      label: 'Tema del sistema',
+      description: 'Se adapta automáticamente a tu dispositivo.',
+      icon: Monitor,
+    },
+  ]
 
   const handleExportData = async () => {
     try {
@@ -162,6 +239,19 @@ export default function AccountSettingsPage() {
     }
   }
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error)
+    } finally {
+      try {
+        localStorage.removeItem('access_token')
+      } catch (_e) {}
+      navigate('/login')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-hero flex items-center justify-center">
@@ -190,27 +280,27 @@ export default function AccountSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-hero pb-24 md:pb-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 md:pt-28">
         {/* Header */}
-        <div className="glass-card p-6 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white text-xl font-bold">
+        <div className="glass-card mb-6 p-4 sm:p-6">
+          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-left">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 text-2xl font-bold text-white">
               {profile?.meta?.first_name ? profile.meta.first_name.charAt(0).toUpperCase() : '?'}
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Configuración de cuenta</h1>
-              <p className="text-slate-300">Gestiona tu cuenta y preferencias</p>
+              <p className="mt-1 text-sm text-slate-300 sm:text-base">Gestiona tu cuenta y preferencias</p>
             </div>
           </div>
         </div>
 
         {/* Tabs de navegación */}
-        <div className="glass-card p-1 mb-6">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-1">
+        <div className="glass-card mb-6 p-1">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 md:gap-1">
             <button
               onClick={() => setActiveTab('notifications')}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-colors ${
+              className={`flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm transition-colors sm:text-base ${
                 activeTab === 'notifications' 
                   ? 'bg-emerald-500 text-white' 
                   : 'text-slate-300 hover:text-white hover:bg-slate-700'
@@ -221,7 +311,7 @@ export default function AccountSettingsPage() {
             </button>
             <button
               onClick={() => setActiveTab('privacy')}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-colors ${
+              className={`flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm transition-colors sm:text-base ${
                 activeTab === 'privacy' 
                   ? 'bg-emerald-500 text-white' 
                   : 'text-slate-300 hover:text-white hover:bg-slate-700'
@@ -232,7 +322,7 @@ export default function AccountSettingsPage() {
             </button>
             <button
               onClick={() => setActiveTab('account')}
-              className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-colors ${
+              className={`flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm transition-colors sm:text-base ${
                 activeTab === 'account' 
                   ? 'bg-emerald-500 text-white' 
                   : 'text-slate-300 hover:text-white hover:bg-slate-700'
@@ -247,13 +337,13 @@ export default function AccountSettingsPage() {
         {/* Contenido de las tabs */}
         {activeTab === 'notifications' && (
           <div className="space-y-6">
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 sm:p-6">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <Bell size={20} />
                 Preferencias de notificaciones
               </h2>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+                <div className="flex flex-col gap-3 rounded-lg bg-slate-700/50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="text-white font-medium">Notificaciones por email</h3>
                     <p className="text-slate-400 text-sm">Recibe actualizaciones sobre tus viajes</p>
@@ -263,7 +353,7 @@ export default function AccountSettingsPage() {
                     <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                   </label>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+                <div className="flex flex-col gap-3 rounded-lg bg-slate-700/50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="text-white font-medium">Notificaciones push</h3>
                     <p className="text-slate-400 text-sm">Recibe notificaciones en tiempo real</p>
@@ -273,7 +363,7 @@ export default function AccountSettingsPage() {
                     <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                   </label>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+                <div className="flex flex-col gap-3 rounded-lg bg-slate-700/50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="text-white font-medium">Recordatorios de viaje</h3>
                     <p className="text-slate-400 text-sm">Te avisamos antes de tus viajes</p>
@@ -290,13 +380,13 @@ export default function AccountSettingsPage() {
 
         {activeTab === 'privacy' && (
           <div className="space-y-6">
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 sm:p-6">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <Shield size={20} />
                 Configuración de privacidad
               </h2>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+                <div className="flex flex-col gap-3 rounded-lg bg-slate-700/50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="text-white font-medium">Perfil público</h3>
                     <p className="text-slate-400 text-sm">Permite que otros usuarios vean tu perfil</p>
@@ -306,7 +396,7 @@ export default function AccountSettingsPage() {
                     <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                   </label>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+                <div className="flex flex-col gap-3 rounded-lg bg-slate-700/50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="text-white font-medium">Mostrar ubicación</h3>
                     <p className="text-slate-400 text-sm">Comparte tu ubicación con otros usuarios</p>
@@ -316,7 +406,7 @@ export default function AccountSettingsPage() {
                     <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                   </label>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg">
+                <div className="flex flex-col gap-3 rounded-lg bg-slate-700/50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <h3 className="text-white font-medium">Mostrar historial de viajes</h3>
                     <p className="text-slate-400 text-sm">Permite que otros vean tus viajes anteriores</p>
@@ -334,7 +424,7 @@ export default function AccountSettingsPage() {
 
         {activeTab === 'account' && (
           <div className="space-y-6">
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 sm:p-6">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <User size={20} />
                 Información de cuenta
@@ -353,7 +443,7 @@ export default function AccountSettingsPage() {
               </div>
             </div>
 
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 sm:p-6">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <Key size={20} />
                 Seguridad
@@ -368,7 +458,58 @@ export default function AccountSettingsPage() {
               </div>
             </div>
 
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 sm:p-6">
+              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                <Sun size={20} />
+                Apariencia
+              </h2>
+              <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {themeOptions.map((option) => {
+                    const isActive = theme === option.value
+                    const Icon = option.icon
+                    const paletteClass =
+                      option.value === 'light'
+                        ? 'border-emerald-200/70 bg-white/80 text-slate-800 hover:bg-emerald-50 dark:border-emerald-500/40 dark:bg-slate-800/60 dark:text-white dark:hover:bg-slate-700/60'
+                        : option.value === 'dark'
+                        ? 'border-slate-700 bg-slate-900/70 text-white hover:bg-slate-800'
+                        : 'border-slate-700 bg-slate-800/60 text-white hover:bg-slate-700/60'
+                    const iconColor = isActive
+                      ? 'text-emerald-400'
+                      : option.value === 'light'
+                      ? 'text-emerald-500 dark:text-emerald-300'
+                      : 'text-emerald-300'
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() => handleThemeSelect(option.value)}
+                        disabled={isActive}
+                        className={`w-full flex flex-col gap-2 rounded-lg border px-4 py-4 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:cursor-not-allowed disabled:opacity-90 ${paletteClass} ${isActive ? 'ring-2 ring-emerald-400' : ''}`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-sm sm:text-base">{option.label}</p>
+                            <p className="text-xs text-slate-500 sm:text-sm dark:text-slate-300">
+                              {option.description}
+                            </p>
+                          </div>
+                          <Icon className={`w-5 h-5 ${iconColor}`} />
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-xs text-slate-500 sm:text-sm dark:text-slate-300">
+                  {theme === 'system'
+                    ? `Siguiendo el tema del sistema (${systemPrefersDark ? 'oscuro' : 'claro'}).`
+                    : theme === 'dark'
+                    ? 'El tema oscuro está activo en tu dispositivo.'
+                    : 'El tema claro está activo en tu dispositivo.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="glass-card p-4 sm:p-6">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <Download size={20} />
                 Datos
@@ -393,7 +534,23 @@ export default function AccountSettingsPage() {
               </div>
             </div>
 
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 sm:p-6">
+              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                <LogOut size={20} />
+                Sesión
+              </h2>
+              <div className="space-y-3">
+                <button
+                  onClick={handleLogout}
+                  className="w-full p-4 bg-emerald-500/20 rounded-lg border border-emerald-400/40 text-left text-white transition-colors hover:bg-emerald-500/30 flex items-center gap-3"
+                >
+                  <LogOut size={20} className="text-emerald-300" />
+                  <span>Cerrar sesión</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="glass-card p-4 sm:p-6">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <Trash2 size={20} />
                 Zona de peligro

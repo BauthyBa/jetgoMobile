@@ -108,14 +108,56 @@ export default function ProfilePage() {
   }, [navigate])
 
   const handleAvatarChange = async (newAvatarUrl) => {
+    if ((profile?.meta?.avatar_url || '') === (newAvatarUrl || '')) {
+      return
+    }
     try {
       setSaving(true)
       setError('')
       
       // Actualizar metadata en Supabase
-      await updateUserMetadata({
+      const metadata = {
         avatar_url: newAvatarUrl
-      })
+      }
+      try {
+        await updateUserMetadata(metadata)
+      } catch (error) {
+        if (error?.code === 'SESSION_EXPIRED') {
+          throw error
+        }
+        console.warn('Fallo al actualizar metadata en Supabase, continuando con fallback local:', error)
+      }
+      try {
+        const existingMeta = (() => {
+          try {
+            return JSON.parse(localStorage.getItem('dni_meta') || 'null')
+          } catch {
+            return null
+          }
+        })() || {}
+        const nextMeta = { ...existingMeta }
+        if (newAvatarUrl) {
+          nextMeta.avatar_url = newAvatarUrl
+        } else {
+          delete nextMeta.avatar_url
+        }
+        localStorage.setItem('dni_meta', JSON.stringify(nextMeta))
+        setProfile((prev) => {
+          if (!prev) return prev
+          const nextMetaObj = { ...(prev.meta || {}) }
+          if (newAvatarUrl) {
+            nextMetaObj.avatar_url = newAvatarUrl
+          } else {
+            delete nextMetaObj.avatar_url
+          }
+          return {
+            ...prev,
+            meta: nextMetaObj,
+          }
+        })
+      } catch (storageError) {
+        console.warn('No se pudo persistir metadata local del avatar:', storageError)
+      }
       
       // Actualizar en el backend
       try {
@@ -152,6 +194,11 @@ export default function ProfilePage() {
       
       setAvatarUrl(newAvatarUrl)
     } catch (e) {
+      if (e?.code === 'SESSION_EXPIRED') {
+        setError('Tu sesión ha expirado. Por favor inicia sesión nuevamente.')
+        navigate('/login')
+        return
+      }
       setError(e?.message || 'Error al actualizar la foto de perfil')
     } finally {
       setSaving(false)
@@ -167,11 +214,57 @@ export default function ProfilePage() {
       const favoriteTripsArray = favoriteTrips.split(',').map(t => t.trim()).filter(Boolean)
       
       // Guardar en metadata de Supabase
-      await updateUserMetadata({
-        bio: bio.slice(0, 500),
-        interests: interestsArray,
-        favorite_travel_styles: favoriteTripsArray,
-      })
+      try {
+        await updateUserMetadata({
+          bio: bio.slice(0, 500),
+          interests: interestsArray,
+          favorite_travel_styles: favoriteTripsArray,
+        })
+      } catch (error) {
+        if (error?.code === 'SESSION_EXPIRED') {
+          throw error
+        }
+        console.warn('Fallo al actualizar metadata en Supabase, se guardará solo local/back:', error)
+      }
+
+      try {
+        const existingMeta = (() => {
+          try {
+            return JSON.parse(localStorage.getItem('dni_meta') || 'null')
+          } catch {
+            return null
+          }
+        })() || {}
+        const nextMeta = {
+          ...existingMeta,
+          bio: bio.slice(0, 500) || undefined,
+          interests: interestsArray,
+          favorite_travel_styles: favoriteTripsArray,
+        }
+        Object.keys(nextMeta).forEach((key) => {
+          if (nextMeta[key] === undefined) {
+            delete nextMeta[key]
+          }
+        })
+        localStorage.setItem('dni_meta', JSON.stringify(nextMeta))
+        setProfile((prev) => {
+          if (!prev) return prev
+          const nextMetaObj = { ...(prev.meta || {}) }
+          if (bio.trim()) {
+            nextMetaObj.bio = bio.slice(0, 500)
+          } else {
+            delete nextMetaObj.bio
+          }
+          nextMetaObj.interests = interestsArray
+          nextMetaObj.favorite_travel_styles = favoriteTripsArray
+          return {
+            ...prev,
+            meta: nextMetaObj,
+          }
+        })
+      } catch (storageError) {
+        console.warn('No se pudo persistir metadata local de perfil:', storageError)
+      }
       
       // Upsert espejo en tabla pública para perfiles visibles
       try {
@@ -193,6 +286,11 @@ export default function ProfilePage() {
       
       setEditing(false)
     } catch (e) {
+      if (e?.code === 'SESSION_EXPIRED') {
+        setError('Tu sesión ha expirado. Por favor inicia sesión nuevamente.')
+        navigate('/login')
+        return
+      }
       setError(e?.message || 'No se pudo guardar el perfil')
     } finally {
       setSaving(false)
@@ -456,82 +554,82 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-hero pb-24 md:pb-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-[calc(env(safe-area-inset-top)+3rem)] md:pt-28">
         {/* Header del perfil */}
-        <div className="glass-card p-6 mb-6">
-          <div className="flex items-center gap-6">
-            <div className="relative">
-              {editing ? (
-                <AvatarUpload
-                  currentAvatarUrl={avatarUrl}
-                  onAvatarChange={handleAvatarChange}
-                  userId={profile?.user_id}
-                  disabled={saving}
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
-                  {avatarUrl ? (
-                    <img 
-                      src={avatarUrl} 
-                      alt="Avatar" 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    profile?.meta?.first_name ? profile.meta.first_name.charAt(0).toUpperCase() : '?'
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
+        <div className="glass-card mb-6 p-4 sm:p-6">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col items-center gap-4 text-center md:flex-row md:items-center md:gap-6 md:text-left">
+              <div className="relative">
+                {editing ? (
+                  <AvatarUpload
+                    currentAvatarUrl={avatarUrl}
+                    onAvatarChange={handleAvatarChange}
+                    userId={profile?.user_id}
+                    disabled={saving}
+                  />
+                ) : (
+                  <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 text-3xl font-bold text-white md:h-20 md:w-20 md:text-2xl">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt="Avatar"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      profile?.meta?.first_name ? profile.meta.first_name.charAt(0).toUpperCase() : '?'
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col items-center gap-3 md:items-start">
                 <div>
                   <h1 className="text-2xl font-bold text-white">
                     {profile?.meta?.first_name || 'Usuario'}
                   </h1>
-                  <p className="text-slate-300 text-sm">
+                  <p className="mt-1 max-w-xs text-sm text-slate-300 sm:max-w-md md:mt-2">
                     {bio || 'Sin biografía'}
                   </p>
-                  <div className="flex items-center gap-4 mt-2">
-                    <span className="text-xs text-slate-400 bg-slate-700 px-2 py-1 rounded-full">
-                      {getTripLevel()} ({getTripCount()} viajes)
-                    </span>
-                    <span className="text-xs text-emerald-400">
-                      ✓ DNI Verificado
-                    </span>
-                  </div>
                 </div>
-                <div>
-                  {editing ? (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleCancel}
-                        className="btn secondary flex items-center gap-2"
-                        disabled={saving}
-                      >
-                        <X size={16} />
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={handleSave}
-                        className="btn flex items-center gap-2"
-                        disabled={saving}
-                      >
-                        <Save size={16} />
-                        {saving ? 'Guardando...' : 'Guardar'}
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setEditing(true)}
-                      className="btn secondary flex items-center gap-2"
-                    >
-                      <Edit3 size={16} />
-                      Editar
-                    </button>
-                  )}
+                <div className="flex flex-wrap items-center justify-center gap-2 text-xs md:justify-start">
+                  <span className="rounded-full bg-slate-700 px-3 py-1 text-slate-200">
+                    {getTripLevel()} ({getTripCount()} viajes)
+                  </span>
+                  <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-emerald-300">
+                    ✓ DNI Verificado
+                  </span>
                 </div>
               </div>
+            </div>
+            <div className="flex w-full flex-col gap-2 md:w-auto md:items-end">
+              {editing ? (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    onClick={handleCancel}
+                    className="btn secondary flex w-full items-center justify-center gap-2 md:w-auto"
+                    disabled={saving}
+                  >
+                    <X size={16} />
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="btn flex w-full items-center justify-center gap-2 md:w-auto"
+                    disabled={saving}
+                  >
+                    <Save size={16} />
+                    {saving ? 'Guardando...' : 'Guardar'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="btn secondary flex w-full items-center justify-center gap-2 md:w-auto"
+                >
+                  <Edit3 size={16} />
+                  Editar
+                </button>
+              )}
             </div>
           </div>
           {error && (
@@ -542,11 +640,11 @@ export default function ProfilePage() {
         </div>
 
         {/* Tabs de navegación */}
-        <div className="glass-card p-1 mb-6">
-          <div className="flex">
+        <div className="glass-card mb-6 p-1">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <button
               onClick={() => setActiveTab('personal')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-colors ${
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm transition-colors sm:text-base ${
                 activeTab === 'personal' 
                   ? 'bg-emerald-500 text-white' 
                   : 'text-slate-300 hover:text-white hover:bg-slate-700'
@@ -557,7 +655,7 @@ export default function ProfilePage() {
             </button>
             <button
               onClick={() => setActiveTab('trips')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-colors ${
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm transition-colors sm:text-base ${
                 activeTab === 'trips' 
                   ? 'bg-emerald-500 text-white' 
                   : 'text-slate-300 hover:text-white hover:bg-slate-700'
@@ -568,7 +666,7 @@ export default function ProfilePage() {
             </button>
             <button
               onClick={() => setActiveTab('account')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-colors ${
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm transition-colors sm:text-base ${
                 activeTab === 'account' 
                   ? 'bg-emerald-500 text-white' 
                   : 'text-slate-300 hover:text-white hover:bg-slate-700'
@@ -584,7 +682,7 @@ export default function ProfilePage() {
         {activeTab === 'personal' && (
           <div className="space-y-6">
             {/* Información básica */}
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 sm:p-6">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <User size={20} />
                 Información básica
@@ -618,7 +716,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Biografía e intereses */}
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 sm:p-6">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <Heart size={20} />
                 Sobre mí
@@ -657,7 +755,7 @@ export default function ProfilePage() {
                           </span>
                         )) : null}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row">
                         <input
                           value={newInterest}
                           onChange={(e) => setNewInterest(e.target.value)}
@@ -667,7 +765,7 @@ export default function ProfilePage() {
                         />
                         <button
                           onClick={addInterest}
-                          className="btn secondary"
+                          className="btn secondary w-full sm:w-auto"
                           disabled={!newInterest.trim()}
                         >
                           Agregar
@@ -705,7 +803,7 @@ export default function ProfilePage() {
                           </span>
                         )) : null}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row">
                         <input
                           value={newTripStyle}
                           onChange={(e) => setNewTripStyle(e.target.value)}
@@ -715,7 +813,7 @@ export default function ProfilePage() {
                         />
                         <button
                           onClick={addTripStyle}
-                          className="btn secondary"
+                          className="btn secondary w-full sm:w-auto"
                           disabled={!newTripStyle.trim()}
                         >
                           Agregar
@@ -740,7 +838,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Estadísticas */}
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 sm:p-6">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <Shield size={20} />
                 Tu fiabilidad al compartir coche
@@ -772,7 +870,7 @@ export default function ProfilePage() {
         {activeTab === 'account' && (
           <div className="space-y-6">
             {/* Reseñas */}
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 sm:p-6">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <Star size={20} />
                 Reseñas
@@ -792,7 +890,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Configuraciones de cuenta */}
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 sm:p-6">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                 <Settings size={20} />
                 Configuraciones
@@ -812,7 +910,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Acciones de cuenta */}
-            <div className="glass-card p-6">
+            <div className="glass-card p-4 sm:p-6">
               <h2 className="text-xl font-semibold text-white mb-4">Acciones de cuenta</h2>
               <div className="space-y-3">
                 <button 

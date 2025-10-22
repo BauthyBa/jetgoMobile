@@ -145,9 +145,16 @@ export default function FriendsPage() {
     }
   }
 
+  const tabButtonClasses = (tab) =>
+    `px-4 py-2 rounded-lg transition-colors ${
+      activeTab === tab
+        ? 'bg-blue-600 text-white'
+        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+    }`
+
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen bg-gradient-hero dark:bg-slate-950">
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-white">Cargando...</div>
         </div>
@@ -156,12 +163,12 @@ export default function FriendsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero text-foreground">
-      <div className="container mx-auto px-4 py-8 pt-24">
+    <div className="min-h-screen bg-gradient-hero dark:bg-slate-950 text-foreground">
+      <div className="container mx-auto px-4 pb-8 pt-[calc(env(safe-area-inset-top)+4rem)] md:pt-32">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Amigos</h1>
-          <p className="text-white/70">Gestiona tus conexiones y solicitudes</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Amigos</h1>
+          <p className="text-slate-500 dark:text-white/70">Gestiona tus conexiones y solicitudes</p>
         </div>
 
         {/* Tabs */}
@@ -169,31 +176,19 @@ export default function FriendsPage() {
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab('received')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                activeTab === 'received'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
+              className={tabButtonClasses('received')}
             >
               Recibidas ({requests.filter(r => r.status === 'pending').length})
             </button>
             <button
               onClick={() => setActiveTab('sent')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                activeTab === 'sent'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
+              className={tabButtonClasses('sent')}
             >
               Enviadas
             </button>
             <button
               onClick={() => setActiveTab('friends')}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                activeTab === 'friends'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
+              className={tabButtonClasses('friends')}
             >
               Amigos ({friends.length})
             </button>
@@ -226,23 +221,51 @@ export default function FriendsPage() {
             </GlassCard>
           ) : (
             <div className="space-y-3">
-              {friends.map((friend) => (
-                <GlassCard key={friend.id} className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-medium">
-                      {friend.full_name?.charAt(0)?.toUpperCase() || 'A'}
+              {friends.map((friend) => {
+                const friendId = friend.id || friend.friend_id || friend.userid || friend.user_id
+                const handleOpenProfile = () => {
+                  if (!friendId) return
+                  navigate(`/profile/${friendId}`)
+                }
+                const key =
+                  friend.id ||
+                  friend.friend_id ||
+                  friend.userid ||
+                  friend.user_id ||
+                  friend.email ||
+                  friend.username
+                return (
+                  <GlassCard
+                    key={key}
+                    className={`p-4 ${friendId ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-lg' : ''}`}
+                    hover={!!friendId}
+                    onClick={handleOpenProfile}
+                    role={friendId ? 'button' : undefined}
+                    tabIndex={friendId ? 0 : undefined}
+                    onKeyDown={(event) => {
+                      if (!friendId) return
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        handleOpenProfile()
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-medium">
+                        {friend.full_name?.charAt(0)?.toUpperCase() || 'A'}
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-white">
+                          {friend.full_name || 'Amigo'}
+                        </h4>
+                        <p className="text-sm text-slate-400">
+                          Amigos desde {new Date(friend.friendship_date).toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-medium text-white">
-                        {friend.full_name || 'Amigo'}
-                      </h4>
-                      <p className="text-sm text-slate-400">
-                        Amigos desde {new Date(friend.friendship_date).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </GlassCard>
-              ))}
+                  </GlassCard>
+                )
+              })}
             </div>
           )
         ) : (

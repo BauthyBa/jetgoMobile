@@ -17,14 +17,15 @@ import {
   SlidersHorizontal,
   Loader2,
   RotateCcw,
-  X
+  X,
+  Plus
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import TarjetaViaje from '@/components/TarjetaViaje'
-import TripGrid from '@/components/TripGrid'
 import TripListHorizontal from '@/components/TripListHorizontal'
 import ApplyToTripModal from '@/components/ApplyToTripModal'
+import ROUTES from '@/config/routes'
 
 export default function ViajesPage() {
   const [searchParams] = useSearchParams()
@@ -153,6 +154,26 @@ export default function ViajesPage() {
 
     loadTrips()
   }, [])
+
+  useEffect(() => {
+    const handleShowMineRequest = () => {
+      if (!profile?.id) {
+        navigate('/login')
+        return
+      }
+
+      const mine = (tripsBase || []).filter((t) => t.creatorId && t.creatorId === profile.id)
+      setTrips(mine)
+      setShowMineOnly(true)
+      setVisibleCount(6)
+      setFiltersOpen(false)
+    }
+
+    window.addEventListener('viajes:show-mine', handleShowMineRequest)
+    return () => {
+      window.removeEventListener('viajes:show-mine', handleShowMineRequest)
+    }
+  }, [profile, tripsBase, navigate])
 
   // Filtrar y ordenar viajes
   const filteredTrips = useMemo(() => {
@@ -352,53 +373,71 @@ export default function ViajesPage() {
     { value: 'participants_desc', label: 'Más participantes' }
   ]
 
+  const handleCreateTrip = () => {
+    navigate(ROUTES.CREAR_VIAJE)
+  }
+
+  const handleEditTrip = (trip) => {
+    if (!trip?.id) return
+    navigate(ROUTES.CREAR_VIAJE_FORM, { state: { tripToEdit: trip } })
+  }
+
   return (
-    <div className="min-h-screen bg-slate-900">
-      <div className="pt-20 pb-12">
-        <div className="max-w-7xl mx-auto px-6">
+    <div className="min-h-screen bg-gradient-hero dark:bg-slate-900">
+      <div className="pt-20 pb-24 md:pb-12">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-4">
-              Descubre tu próximo <span className="text-emerald-400">viaje</span>
-            </h1>
-            <p className="text-lg text-slate-300">
-              Conecta con personas que van al mismo destino y comparte la aventura
-            </p>
+          <div className="mb-8 flex flex-col items-center justify-between gap-4 text-center md:flex-row md:text-left">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">
+                Descubre tu próximo <span className="text-emerald-400">viaje</span>
+              </h1>
+              <p className="text-lg text-slate-300">
+                Conecta con personas que van al mismo destino y comparte la aventura
+              </p>
+            </div>
+            <Button
+              onClick={handleCreateTrip}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-2 font-medium text-white hover:from-emerald-500 hover:to-emerald-400"
+            >
+              <Plus className="h-4 w-4" />
+              Crear viaje
+            </Button>
           </div>
 
           {/* Barra de búsqueda */}
-          <div className="bg-slate-800 rounded-lg p-4 mb-8">
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
+          <div className="bg-slate-800 rounded-lg p-4 md:p-6 mb-8">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center">
+              <div className="flex-1 relative w-full">
                 <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
                   placeholder="Desde dónde"
                   value={searchFrom}
                   onChange={(e) => setSearchFrom(e.target.value)}
-                  className="pl-10 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                  className="pl-10 w-full bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
                 />
               </div>
-              <div className="flex-1 relative">
+              <div className="flex-1 relative w-full">
                 <MapPin className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
                   placeholder="Hacia dónde"
                   value={searchTo}
                   onChange={(e) => setSearchTo(e.target.value)}
-                  className="pl-10 bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
+                  className="pl-10 w-full bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
                 />
               </div>
-              <div className="flex-1 relative">
+              <div className="flex-1 relative w-full">
                 <Calendar className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
                   type="date"
                   value={searchDate}
                   onChange={(e) => setSearchDate(e.target.value)}
-                  className="pl-10 bg-slate-700 border-slate-600 text-white"
+                  className="pl-10 w-full bg-slate-700 border-slate-600 text-white"
                 />
               </div>
               <Button
                 onClick={() => setFiltersOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 w-full md:w-auto md:flex-shrink-0"
               >
                 <SlidersHorizontal className="mr-2 h-4 w-4" />
                 Filtros
@@ -407,7 +446,7 @@ export default function ViajesPage() {
           </div>
 
           {/* Contenido principal */}
-          <div className="flex gap-8">
+          <div className="flex flex-col gap-8 lg:flex-row">
             {/* Sidebar de filtros - Solo desktop */}
             <div className="hidden lg:block w-72">
               <div className="bg-slate-800 rounded-lg p-6 sticky top-24">
@@ -583,7 +622,7 @@ export default function ViajesPage() {
             </div>
 
             {/* Lista de viajes */}
-            <div className="flex-1 max-w-4xl">
+            <div className="flex-1 w-full max-w-full lg:max-w-4xl">
               <div className="mb-6">
                 <h2 className="text-xl font-semibold text-white">
                   {showMineOnly ? 'Mis Viajes' : 'Viajes Disponibles'} ({filteredTrips.length})
@@ -619,6 +658,7 @@ export default function ViajesPage() {
                       onJoin={handleJoin}
                       onApply={handleApply}
                       onLeave={handleLeave}
+                      onEdit={handleEditTrip}
                       canEdit={(t) => t.creatorId && t.creatorId === profile.id}
                       isMemberFn={isMemberFn}
                       isOwnerFn={isOwnerFn}

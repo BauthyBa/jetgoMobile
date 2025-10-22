@@ -30,6 +30,17 @@ export default function ProfileMenu({ isLoggedIn, user, onThemeToggle }) {
   }, [])
 
   useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const handleThemeEvent = (event) => {
+      const next = event?.detail
+      if (!next) return
+      setTheme(next)
+    }
+    window.addEventListener('theme:changed', handleThemeEvent)
+    return () => window.removeEventListener('theme:changed', handleThemeEvent)
+  }, [])
+
+  useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setIsOpen(false)
@@ -59,11 +70,18 @@ export default function ProfileMenu({ isLoggedIn, user, onThemeToggle }) {
     } catch {}
     
     // Apply theme immediately
-    const isDark = next === 'dark' || (next === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-    if (isDark) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
+    if (typeof document !== 'undefined' && typeof window !== 'undefined') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      const isDark = next === 'dark' || (next === 'system' && prefersDark)
+      if (isDark) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('theme:changed', { detail: next }))
     }
     
     if (onThemeToggle) onThemeToggle(next)

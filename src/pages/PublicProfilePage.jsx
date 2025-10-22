@@ -28,6 +28,7 @@ import {
   UserMinus,
   UserCheck
 } from 'lucide-react'
+import ReviewsSection from '../components/ReviewsSection'
 
 const PublicProfilePage = () => {
   const { username, userId } = useParams()
@@ -51,6 +52,7 @@ const PublicProfilePage = () => {
   const [friendshipStatus, setFriendshipStatus] = useState(null)
   const [currentUser, setCurrentUser] = useState(null)
   const [loadingFriendship, setLoadingFriendship] = useState(false)
+  const viewedUserId = profile?.userid || profile?.id || profile?.user_id || null
 
   useEffect(() => {
     async function loadPublicProfile() {
@@ -355,7 +357,25 @@ const PublicProfilePage = () => {
       }
       
       const data = await response.json()
-      setUserPosts(data.posts || [])
+      const normalizedId = userId ? String(userId) : null
+      const posts = Array.isArray(data.posts) ? data.posts : []
+      const filteredPosts =
+        normalizedId === null
+          ? posts
+          : posts.filter((post) => {
+              const ownerId =
+                post.user_id ??
+                post.author_id ??
+                post.userid ??
+                post.userId ??
+                post.user_id_id ??
+                post.author?.id ??
+                post.author?.userid ??
+                post.user?.id ??
+                post.user?.userid
+              return ownerId && String(ownerId) === normalizedId
+            })
+      setUserPosts(filteredPosts)
     } catch (error) {
       console.error('Error loading user posts:', error)
       setUserPosts([])
@@ -366,6 +386,10 @@ const PublicProfilePage = () => {
 
   const likePost = async (postId) => {
     try {
+      if (!currentUser?.id) {
+        alert('Debes iniciar sesión para interactuar con los posts.')
+        return
+      }
       const url = `${API_CONFIG.getEndpointUrl(API_CONFIG.SOCIAL_ENDPOINTS.POSTS)}${postId}/like/`
       console.log('Liking post at:', url)
       
@@ -374,7 +398,7 @@ const PublicProfilePage = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ user_id: profile?.id }),
+        body: JSON.stringify({ user_id: currentUser.id }),
         mode: 'cors',
       })
       
@@ -398,7 +422,9 @@ const PublicProfilePage = () => {
       }
       
       // Reload posts to update like count
-      loadUserPosts(profile?.id)
+      if (viewedUserId) {
+        loadUserPosts(viewedUserId)
+      }
       
     } catch (error) {
       console.error('Error liking post:', error)
@@ -428,6 +454,10 @@ const PublicProfilePage = () => {
   const createComment = async (postId) => {
     try {
       if (!newComment[postId]?.trim()) return
+      if (!currentUser?.id) {
+        alert('Debes iniciar sesión para comentar.')
+        return
+      }
       
       const url = `${API_CONFIG.getEndpointUrl(API_CONFIG.SOCIAL_ENDPOINTS.POSTS)}${postId}/comments/`
       console.log('Creating comment at:', url)
@@ -438,7 +468,7 @@ const PublicProfilePage = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          user_id: profile?.id,
+          user_id: currentUser.id,
           content: newComment[postId]
         }),
         mode: 'cors',
@@ -633,7 +663,7 @@ const PublicProfilePage = () => {
 
               {/* Botones de acción */}
               {currentUser && currentUser.id !== profile.userid && (
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row">
                   {/* Botón de amistad */}
                   {friendshipStatus === 'accepted' ? (
                     <button
@@ -694,9 +724,9 @@ const PublicProfilePage = () => {
         </GlassCard>
 
         {/* Tabs de contenido */}
-          <GlassCard className="mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex space-x-1 bg-slate-800/50 rounded-lg p-1">
+        <GlassCard className="mb-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+            <div className="flex flex-wrap gap-2 bg-slate-800/50 rounded-lg p-1">
               <button
                 onClick={() => setActiveTab('posts')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -751,7 +781,7 @@ const PublicProfilePage = () => {
 
             {/* Controles de vista para posts */}
             {activeTab === 'posts' && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap sm:justify-end">
                 <button
                   onClick={() => setViewMode('grid')}
                   className={`p-2 rounded-lg transition-colors ${
@@ -1014,56 +1044,11 @@ const PublicProfilePage = () => {
 
           {/* Contenido de reseñas */}
           {activeTab === 'reviews' && (
-            <div>
-              {reviews.length > 0 ? (
-            <div className="space-y-4">
-              {reviews.map((review) => (
-                <div key={review.id} className="bg-slate-800/50 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-semibold text-sm">
-                        {[review.reviewer?.nombre, review.reviewer?.apellido].filter(Boolean).join(' ').charAt(0) || 'A'}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-white font-semibold">
-                          {[review.reviewer?.nombre, review.reviewer?.apellido].filter(Boolean).join(' ') || 'Anónimo'}
-                        </span>
-                        <div className="flex">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-4 h-4 ${
-                                i < review.rating
-                                  ? 'text-yellow-400 fill-current'
-                                  : 'text-slate-400'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      {review.comment && (
-                        <p className="text-slate-300 text-sm">{review.comment}</p>
-                      )}
-                      <p className="text-slate-400 text-xs mt-2">
-                        {new Date(review.created_at).toLocaleDateString('es-ES')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Star className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-white font-semibold mb-2">No hay reseñas</h3>
-                  <p className="text-slate-400 text-sm">
-                    {[profile?.nombre, profile?.apellido].filter(Boolean).join(' ') || 'Este usuario'} no ha recibido reseñas todavía.
-                  </p>
-                </div>
-              )}
-            </div>
+            <ReviewsSection
+              userId={viewedUserId}
+              isOwnProfile={currentUser?.id === viewedUserId}
+              onReviewsUpdated={(list) => setReviews(list || [])}
+            />
           )}
 
           {/* Tab de Amigos */}

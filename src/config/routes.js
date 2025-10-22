@@ -1,0 +1,25 @@
+const ROUTES = {
+  HOME: '/',
+  REGISTER: '/register',
+  LOGIN: '/login',
+  SIGNUP: '/signup',
+  VERIFY_DNI: '/verify-dni',
+  DASHBOARD: '/dashboard',
+  CHATS: '/chats',
+  MODERN_CHAT: '/modern-chat',
+  VIAJES: '/viajes',
+  AMIGOS: '/amigos',
+  SOCIAL: '/social',
+  CREAR_VIAJE: '/crear-viaje',
+  CREAR_VIAJE_FORM: '/crear-viaje/formulario',
+  PROFILE: '/profile',
+  PROFILE_REVIEWS: '/profile/reviews',
+  PROFILE_SETTINGS: '/profile/settings',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
+  tripDetail: (tripId = ':tripId') => `/trip/${tripId}`,
+  tripReviews: (tripId = ':tripId') => `/trip/${tripId}/reviews`,
+  publicProfile: (username = ':username') => `/u/${username}`,
+}
+
+export default ROUTES

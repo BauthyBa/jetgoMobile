@@ -168,24 +168,119 @@ export async function upsertProfileToBackend(payload) {
 
 // Funciones para reseñas (usando Supabase)
 export async function createReview(payload) {
-  // Preferir endpoint Django (no requiere credenciales admin). Si no existe, usar Supabase.
+  // Preferir endpoint autenticado del backend. Si falla, degradar a endpoint público y finalmente a Supabase directo.
   try {
-    const { data } = await apiPublic.post('/reviews/create/', payload)
-    return data
+    const { data } = await api.post('/reviews/create/', payload)
+    if (data?.ok) return data
+    // Si el backend no devuelve ok pero no explota, forzar el mismo shape esperado.
+    if (data && typeof data === 'object') {
+      return { ok: true, review: data.review || data }
+    }
   } catch (ePrimary) {
     try {
-      const { data } = await apiPublic.post('/supabase/reviews/create/', payload)
-      return data
-    } catch (eFallback) {
-      const msg = eFallback?.response?.data?.error || ePrimary?.response?.data?.error || eFallback?.message || ePrimary?.message || 'No se pudo crear la reseña'
+      const { data } = await api.post('/supabase/reviews/create/', payload)
+      if (data?.ok) return data
+      if (data && typeof data === 'object') {
+        return { ok: true, review: data.review || data }
+      }
+    } catch (_eSecond) {
+      // Continuar con fallback a Supabase
+    }
+
+    try {
+      const { data: authData, error: authError } = await supabase.auth.getUser()
+      if (authError) throw authError
+      const supabaseUser = authData?.user
+      if (!supabaseUser) {
+        throw new Error('Debes iniciar sesión para dejar una reseña')
+      }
+
+      const insertPayload = {
+        reviewer_id: supabaseUser.id,
+        reviewed_user_id: payload.reviewed_user_id,
+        rating: payload.rating,
+        comment: payload.comment || null,
+      }
+
+      const { data, error } = await supabase
+        .from('reviews')
+        .insert(insertPayload)
+        .select(
+          `id, reviewer_id, reviewed_user_id, rating, comment, created_at,
+           reviewer:User!reviews_reviewer_id_fkey(nombre, apellido, avatar_url)`
+        )
+        .single()
+
+      if (error) throw error
+
+      return { ok: true, review: data }
+    } catch (supabaseError) {
+      const msg =
+        supabaseError?.response?.data?.error ||
+        supabaseError?.message ||
+        ePrimary?.response?.data?.error ||
+        ePrimary?.message ||
+        'No se pudo crear la reseña'
       return { ok: false, error: msg }
     }
   }
 }
 
 export async function getUserReviews(userId) {
-  const { data } = await apiPublic.get(`/supabase/reviews/user/?user_id=${userId}`)
-  return data
+  try {
+    const { data } = await apiPublic.get(`/supabase/reviews/user/?user_id=${userId}`)
+    return data
+  } catch (primaryError) {
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select(
+          `id, reviewer_id, reviewed_user_id, rating, comment, created_at,
+           reviewer:User!reviews_reviewer_id_fkey(nombre, apellido, avatar_url)`
+        )
+        .eq('reviewed_user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      const reviews = (data || []).map((review) => {
+        const reviewerName = [review?.reviewer?.nombre, review?.reviewer?.apellido]
+          .filter(Boolean)
+          .join(' ')
+        return {
+          ...review,
+          reviewer_name: reviewerName || 'Anónimo',
+        }
+      })
+
+      const total = reviews.length
+      const average =
+        total === 0 ? 0 : reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / total
+
+      const distribution = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 }
+      reviews.forEach((r) => {
+        const key = String(Math.max(1, Math.min(5, Math.round(r.rating || 0))))
+        distribution[key] += 1
+      })
+
+      return {
+        ok: true,
+        reviews,
+        statistics: {
+          total_reviews: total,
+          average_rating: average,
+          rating_distribution: distribution,
+        },
+      }
+    } catch (fallbackError) {
+      const msg =
+        fallbackError?.message ||
+        primaryError?.response?.data?.error ||
+        primaryError?.message ||
+        'Error al cargar las reseñas'
+      return { ok: false, error: msg }
+    }
+  }
 }
 
 export async function getUserProfile(userId) {

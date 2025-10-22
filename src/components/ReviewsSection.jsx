@@ -6,7 +6,7 @@ import GlassCard from './GlassCard'
 import { getUserReviews } from '@/services/api'
 import { supabase } from '@/services/supabase'
 
-export default function ReviewsSection({ userId, isOwnProfile = false }) {
+export default function ReviewsSection({ userId, isOwnProfile = false, onReviewsUpdated }) {
   const [reviews, setReviews] = useState([])
   const [statistics, setStatistics] = useState({
     total_reviews: 0,
@@ -41,12 +41,16 @@ export default function ReviewsSection({ userId, isOwnProfile = false }) {
       const response = await getUserReviews(userId)
       
       if (response.ok) {
-        setReviews(response.reviews || [])
+        const list = response.reviews || []
+        setReviews(list)
         setStatistics(response.statistics || {
           total_reviews: 0,
           average_rating: 0,
           rating_distribution: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 }
         })
+        if (typeof onReviewsUpdated === 'function') {
+          onReviewsUpdated(list)
+        }
       } else {
         setError(response.error || 'Error al cargar las reseñas')
       }

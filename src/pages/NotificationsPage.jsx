@@ -29,14 +29,14 @@ export default function NotificationsPage() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-hero dark:bg-slate-900 text-white">
         <p>Cargando tus notificaciones…</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 pt-24 pb-12">
+    <div className="min-h-screen bg-gradient-hero dark:bg-slate-900 pt-24 pb-12">
       <div className="max-w-4xl mx-auto px-6">
         <header className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Notificaciones</h1>
@@ -51,4 +51,3 @@ export default function NotificationsPage() {
     </div>
   )
 }
-

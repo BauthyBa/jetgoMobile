@@ -27,6 +27,16 @@ export default function AudioRecorder({ onAudioRecorded, onCancel }) {
 
   const startRecording = async () => {
     try {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+        alert('Tu navegador no soporta grabación de audio. Probá actualizarlo o usar la app móvil.')
+        return
+      }
+
+      if (!window.isSecureContext) {
+        alert('Para grabar audio necesitás acceder mediante HTTPS o desde la app instalada.')
+        return
+      }
+
       console.log('🎤 Starting audio recording...')
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       console.log('🎤 Media stream obtained:', stream)
@@ -74,7 +84,15 @@ export default function AudioRecorder({ onAudioRecorded, onCancel }) {
 
     } catch (error) {
       console.error('Error accessing microphone:', error)
-      alert('No se pudo acceder al micrófono')
+      let message = 'No se pudo acceder al micrófono.'
+
+      if (error?.name === 'NotAllowedError' || error?.name === 'SecurityError') {
+        message = 'Necesitamos permiso para usar tu micrófono. Verificá la configuración del navegador o de la app.'
+      } else if (error?.name === 'NotFoundError' || error?.name === 'OverconstrainedError') {
+        message = 'No encontramos un micrófono disponible en este dispositivo.'
+      }
+
+      alert(message)
     }
   }
 

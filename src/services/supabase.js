@@ -79,7 +79,29 @@ export async function getSession(options = {}) {
 }
 
 export async function updateUserMetadata(metadata) {
+  const session = await getSession({ forceRefresh: true })
+  if (!session?.user) {
+    const err = new Error('Tu sesión ha expirado. Por favor inicia sesión nuevamente.')
+    err.code = 'SESSION_EXPIRED'
+    throw err
+  }
+
   const { data, error } = await supabase.auth.updateUser({ data: metadata })
-  if (error) throw error
+  if (error) {
+    const status = error?.status ?? error?.statusCode
+    if (status === 401 || error?.message?.toLowerCase().includes('jwt')) {
+      try {
+        await supabase.auth.signOut()
+      } catch {}
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('access_token')
+      }
+    }
+    if (status && status >= 500) {
+      console.warn('Supabase metadata update failed with server error, fallback to local metadata only.', error)
+      return null
+    }
+    throw error
+  }
   return data
 }
