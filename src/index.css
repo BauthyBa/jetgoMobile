@@ -322,6 +322,18 @@ h1 {
   .animate-fade-in { animation: fade-in 200ms ease-out; }
 }
 
+.safe-area-top {
+  padding-top: 16px;
+  padding-top: calc(env(safe-area-inset-top) + 16px);
+  padding-top: calc(constant(safe-area-inset-top) + 16px);
+}
+
+.safe-area-bottom {
+  padding-bottom: 16px;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 16px);
+  padding-bottom: calc(constant(safe-area-inset-bottom) + 16px);
+}
+
 /* Text truncation helpers */
 .truncate-1 { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .line-clamp-2 {

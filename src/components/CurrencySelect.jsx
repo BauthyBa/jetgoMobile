@@ -50,3 +50,5 @@ const CurrencySelect = ({ value, onChange, className = '', style = {} }) => {
 }
 
 export default CurrencySelect
+
+

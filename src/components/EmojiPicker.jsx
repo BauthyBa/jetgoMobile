@@ -179,3 +179,5 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose }) {
     </div>
   )
 }
+
+

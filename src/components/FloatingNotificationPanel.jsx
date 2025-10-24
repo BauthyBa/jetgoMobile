@@ -499,3 +499,5 @@ export default function FloatingNotificationPanel({ isOpen, onClose, onNavigate 
     </>
   )
 }
+
+

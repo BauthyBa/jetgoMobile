@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { listTrips, joinTrip, leaveTrip } from '@/services/trips'
 import { applyToTrip, getUserApplications } from '@/services/applications'
@@ -18,14 +18,18 @@ import {
   Loader2,
   RotateCcw,
   X,
-  Plus
+  Plus,
+  CloudSun
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import TarjetaViaje from '@/components/TarjetaViaje'
 import TripListHorizontal from '@/components/TripListHorizontal'
+import TripGridEnhanced from '@/components/TripGridEnhanced'
 import ApplyToTripModal from '@/components/ApplyToTripModal'
 import ROUTES from '@/config/routes'
+import WeatherModal from '@/components/WeatherModal'
+import { getWeatherData } from '@/services/weather'
 
 export default function ViajesPage() {
   const [searchParams] = useSearchParams()
@@ -58,6 +62,13 @@ export default function ViajesPage() {
     participants: [],
     rating: false
   })
+
+  // Estado del clima
+  const [weatherModalOpen, setWeatherModalOpen] = useState(false)
+  const [weatherLoading, setWeatherLoading] = useState(false)
+  const [weatherError, setWeatherError] = useState(null)
+  const [weatherData, setWeatherData] = useState(null)
+  const [lastWeatherRequest, setLastWeatherRequest] = useState({ type: 'geo', query: null })
 
   // Obtener parámetros de URL
   const urlFrom = searchParams.get('desde') || ''
@@ -382,8 +393,102 @@ export default function ViajesPage() {
     navigate(ROUTES.CREAR_VIAJE_FORM, { state: { tripToEdit: trip } })
   }
 
+  const requestWeather = useCallback(async () => {
+    setWeatherLoading(true)
+    setWeatherError(null)
+    setWeatherData(null)
+
+    const getCurrentCoordinates = () =>
+      new Promise((resolve, reject) => {
+        if (typeof navigator === 'undefined' || !navigator.geolocation) {
+          reject(new Error('Geolocalización no disponible'))
+          return
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => resolve(position.coords),
+          (error) => reject(error),
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 5 * 60 * 1000 }
+        )
+      })
+
+    try {
+      const coords = await getCurrentCoordinates()
+      const weather = await getWeatherData({
+        lat: coords.latitude,
+        lon: coords.longitude,
+      })
+      setWeatherData(weather)
+      setLastWeatherRequest({ type: 'geo', query: null })
+    } catch (geoError) {
+      console.warn('No se pudo obtener la ubicación precisa, usando fallback:', geoError)
+      try {
+        const fallbackWeather = await getWeatherData({
+          city: 'Buenos Aires,AR',
+          label: 'Buenos Aires, AR',
+          note: 'No pudimos detectar tu ubicación. Mostramos un clima de referencia.',
+        })
+        setWeatherData(fallbackWeather)
+        setLastWeatherRequest({ type: 'fallback', query: 'Buenos Aires,AR' })
+      } catch (fallbackError) {
+        console.error('Error al cargar clima de fallback:', fallbackError)
+        setWeatherError(fallbackError?.message || 'No se pudo obtener el clima.')
+      }
+    } finally {
+      setWeatherLoading(false)
+    }
+  }, [])
+
+  const openWeatherModal = useCallback(() => {
+    setWeatherModalOpen(true)
+    requestWeather()
+  }, [requestWeather])
+
+  const closeWeatherModal = useCallback(() => {
+    setWeatherModalOpen(false)
+  }, [])
+
+  const searchWeatherByCity = useCallback(
+    async (query) => {
+      const trimmed = query.trim()
+      if (!trimmed) return
+      setWeatherLoading(true)
+      setWeatherError(null)
+      try {
+        const weather = await getWeatherData({
+          city: trimmed,
+          label: trimmed,
+        })
+        setWeatherData(weather)
+        setLastWeatherRequest({ type: 'city', query: trimmed })
+      } catch (searchError) {
+        console.error('No se pudo obtener el clima buscado:', searchError)
+        setWeatherError(searchError?.message || 'No se pudo obtener el clima para esa ubicación.')
+      } finally {
+        setWeatherLoading(false)
+      }
+    },
+    [],
+  )
+
+  const retryWeather = useCallback(() => {
+    if (lastWeatherRequest.type === 'city' && lastWeatherRequest.query) {
+      searchWeatherByCity(lastWeatherRequest.query)
+    } else {
+      requestWeather()
+    }
+  }, [lastWeatherRequest, requestWeather, searchWeatherByCity])
+
   return (
     <div className="min-h-screen bg-gradient-hero dark:bg-slate-900">
+      <WeatherModal
+        isOpen={weatherModalOpen}
+        onClose={closeWeatherModal}
+        loading={weatherLoading}
+        error={weatherError}
+        weather={weatherData}
+        onRetry={retryWeather}
+        onSearchCity={searchWeatherByCity}
+      />
       <div className="pt-20 pb-24 md:pb-12">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           {/* Header */}
@@ -396,13 +501,24 @@ export default function ViajesPage() {
                 Conecta con personas que van al mismo destino y comparte la aventura
               </p>
             </div>
-            <Button
-              onClick={handleCreateTrip}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-2 font-medium text-white hover:from-emerald-500 hover:to-emerald-400"
-            >
-              <Plus className="h-4 w-4" />
-              Crear viaje
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={openWeatherModal}
+                className="inline-flex items-center gap-2 border border-sky-200/70 bg-sky-50/90 px-4 py-2 font-medium text-slate-700 shadow hover:border-sky-300 hover:bg-sky-100 hover:text-sky-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                <CloudSun className="h-4 w-4 text-sky-500 dark:text-sky-300" />
+                Ver clima
+              </Button>
+              <Button
+                onClick={handleCreateTrip}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-2 font-medium text-white hover:from-emerald-500 hover:to-emerald-400"
+              >
+                <Plus className="h-4 w-4" />
+                Crear viaje
+              </Button>
+            </div>
           </div>
 
           {/* Barra de búsqueda */}
@@ -649,48 +765,21 @@ export default function ViajesPage() {
                   </div>
                 </div>
               ) : (
-                <div>
-                  {profile ? (
-                    <TripListHorizontal
-                      trips={(showMineOnly ? filteredTrips : filteredTrips.filter((t) => !(t.creatorId && t.creatorId === profile.id))).slice(0, visibleCount)}
-                      joiningId={joiningId}
-                      leavingId={leavingId}
-                      onJoin={handleJoin}
-                      onApply={handleApply}
-                      onLeave={handleLeave}
-                      onEdit={handleEditTrip}
-                      canEdit={(t) => t.creatorId && t.creatorId === profile.id}
-                      isMemberFn={isMemberFn}
-                      isOwnerFn={isOwnerFn}
-                      hasAppliedFn={hasAppliedFn}
-                    />
-                  ) : (
-                    <div className="space-y-4">
-                      {filteredTrips.map((trip) => (
-                        <TarjetaViaje 
-                          key={trip.id} 
-                          viaje={trip} 
-                          creadorNombre={creatorsInfo[trip.creatorId] || 'Usuario'}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Botón cargar más */}
-                  {(() => { 
-                    const list = showMineOnly ? filteredTrips : filteredTrips.filter((t) => !(t.creatorId && t.creatorId === profile?.id))
-                    return list.length > 0 && visibleCount < list.length 
-                  })() && (
-                    <div className="flex justify-center mt-8">
-                      <Button 
-                        onClick={() => setVisibleCount((v) => v + 6)}
-                        variant="secondary"
-                      >
-                        Cargar más
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <TripGridEnhanced
+                  trips={showMineOnly ? filteredTrips : filteredTrips.filter((t) => !(t.creatorId && t.creatorId === profile?.id))}
+                  joiningId={joiningId}
+                  leavingId={leavingId}
+                  onJoin={handleJoin}
+                  onApply={handleApply}
+                  onLeave={handleLeave}
+                  onEdit={handleEditTrip}
+                  canEdit={(t) => t.creatorId && t.creatorId === profile?.id}
+                  isMemberFn={isMemberFn}
+                  isOwnerFn={isOwnerFn}
+                  hasAppliedFn={hasAppliedFn}
+                  showViewToggle={true}
+                  showFilters={true}
+                />
               )}
             </div>
           </div>

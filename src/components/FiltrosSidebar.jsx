@@ -182,3 +182,5 @@ export default function FiltrosSidebar({ filtros, onFiltrosChange, onLimpiarFilt
     </div>
   )
 }
+
+

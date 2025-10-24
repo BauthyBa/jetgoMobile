@@ -672,14 +672,16 @@ export default function ModernChatPage() {
     const title = getRoomTitle(room)
     const timestamp = formatRoomTimestamp(room)
     const badgeLabel = isPrivate ? 'Privado' : room.trip_id ? 'Viaje' : 'General'
+    const inactiveCardClasses =
+      'border-slate-200/80 bg-white/90 hover:border-emerald-200/70 hover:bg-emerald-50/80 dark:border-slate-800/60 dark:bg-slate-900/70 dark:hover:border-slate-700 dark:hover:bg-slate-800/70'
+    const activeCardClasses =
+      'border-emerald-400/70 bg-emerald-100/70 shadow-lg shadow-emerald-200/40 dark:bg-emerald-500/15 dark:shadow-emerald-500/20'
 
     return (
       <div
         key={room.id}
         className={`group flex items-center gap-3 rounded-2xl border px-4 py-3 transition-all duration-200 ${
-          isActive
-            ? 'border-emerald-400/70 bg-emerald-500/15 shadow-lg shadow-emerald-500/20'
-            : 'border-slate-800/60 bg-slate-900/70 hover:border-slate-700 hover:bg-slate-800/70'
+          isActive ? activeCardClasses : inactiveCardClasses
         } cursor-pointer`}
         onClick={() => openRoom(room)}
       >
@@ -688,18 +690,18 @@ export default function ModernChatPage() {
             isPrivate
               ? 'bg-gradient-to-br from-blue-500/80 to-blue-600/60'
               : 'bg-gradient-to-br from-emerald-500/80 to-emerald-600/60'
-          } ${isActive ? 'ring-2 ring-emerald-400/70 ring-offset-2 ring-offset-slate-900' : ''}`}
+          } ${isActive ? 'ring-2 ring-emerald-400/70 ring-offset-2 ring-offset-white dark:ring-offset-slate-900' : ''}`}
         >
           <span>{getRoomInitial(room)}</span>
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="font-semibold text-white truncate">{title}</h3>
-            {timestamp && <span className="text-xs text-slate-400">{timestamp}</span>}
+            <h3 className="font-semibold text-slate-900 dark:text-white truncate">{title}</h3>
+            {timestamp && <span className="text-xs text-slate-500 dark:text-slate-400">{timestamp}</span>}
           </div>
-          <div className="mt-1 flex items-center gap-2 text-xs text-slate-400">
-            <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 px-2 py-0.5 text-[11px] uppercase tracking-wide text-slate-300">
+          <div className="mt-1 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-200/80 px-2 py-0.5 text-[11px] uppercase tracking-wide text-slate-600 dark:bg-slate-800/80 dark:text-slate-300">
               {badgeLabel}
             </span>
             <span className="truncate">
@@ -707,7 +709,9 @@ export default function ModernChatPage() {
             </span>
           </div>
           {room.trip_id && (
-            <div className="mt-1 text-[11px] font-medium text-emerald-300">💰 Gastos compartidos disponibles</div>
+            <div className="mt-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-300">
+              💰 Gastos compartidos disponibles
+            </div>
           )}
         </div>
       </div>
@@ -716,6 +720,17 @@ export default function ModernChatPage() {
 
   const hasRooms = tripRooms.length + privateRooms.length > 0
   const isChatOpen = Boolean(activeRoomId)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const detail = { hidden: isChatOpen }
+    window.dispatchEvent(new CustomEvent('app:navigation-visibility', { detail }))
+
+    return () => {
+      window.dispatchEvent(new CustomEvent('app:navigation-visibility', { detail: { hidden: false } }))
+    }
+  }, [isChatOpen])
 
   const closeActiveRoom = useCallback(() => {
     if (unsubscribeRef.current) {
@@ -734,7 +749,7 @@ export default function ModernChatPage() {
   }, [])
 
   return (
-    <div className="relative h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
+    <div className="relative h-screen bg-gradient-to-br from-slate-100 via-white to-slate-200 overflow-hidden dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {!isChatOpen && <Navigation />}
       <ConnectionStatus />
       {error && (
@@ -748,13 +763,13 @@ export default function ModernChatPage() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_75%,rgba(168,85,247,0.1),transparent_50%)]" />
       </div>
 
-      <div className="relative z-10 flex h-screen">
+      <div className="relative z-10 flex h-screen overflow-hidden bg-gradient-hero">
         {!isChatOpen ? (
-          <div className="mx-auto flex h-full w-full max-w-4xl flex-col px-4 py-8">
+          <div className="safe-area-top mx-auto flex h-full w-full max-w-4xl flex-col px-4 py-8">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold text-white">Tus chats</h1>
-                <p className="text-sm text-slate-400">Elegí una conversación para continuar donde la dejaste.</p>
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Tus chats</h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Elegí una conversación para continuar donde la dejaste.</p>
               </div>
               <BackButton fallback="/profile" variant="secondary" className="hidden sm:inline-flex">
                 Volver
@@ -774,20 +789,20 @@ export default function ModernChatPage() {
                   value={roomQuery}
                   onChange={(event) => setRoomQuery(event.target.value)}
                   placeholder="Buscar conversaciones..."
-                  className="w-full rounded-full border-slate-700 bg-slate-900/80 py-3 pl-12 pr-4 text-slate-200 placeholder:text-slate-500 focus:border-emerald-400/60"
+                  className="w-full rounded-full border-slate-200 bg-white/90 py-3 pl-12 pr-4 text-slate-700 placeholder:text-slate-400 shadow-sm focus:border-emerald-400/60 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 dark:placeholder:text-slate-500"
                 />
               </div>
             </div>
             <div className="mt-8 flex-1 overflow-y-auto pb-12">
               {!hasRooms && (
-                <div className="flex h-full flex-col items-center justify-center text-center text-sm text-slate-400">
-                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-800/50">
-                    <svg className="h-8 w-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex h-full flex-col items-center justify-center text-center text-sm text-slate-500 dark:text-slate-400">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-200/70 dark:bg-slate-800/50">
+                    <svg className="h-8 w-8 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                   </div>
-                  <p className="text-base font-medium text-slate-300">Todavía no tenés chats activos</p>
-                  <p className="mt-1 text-xs text-slate-500">Unite a un viaje o conecta con alguien para empezar a conversar.</p>
+                  <p className="text-base font-medium text-slate-800 dark:text-slate-300">Todavía no tenés chats activos</p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">Unite a un viaje o conecta con alguien para empezar a conversar.</p>
                 </div>
               )}
               {hasRooms && (
@@ -796,8 +811,12 @@ export default function ModernChatPage() {
                     <section className="space-y-3">
                       <header className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full bg-emerald-400" />
-                        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-300">Viajes</h2>
-                        <span className="rounded-full bg-slate-800/70 px-2 py-0.5 text-xs text-slate-500">{tripRooms.length}</span>
+                        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                          Viajes
+                        </h2>
+                        <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800/70 dark:text-slate-500">
+                          {tripRooms.length}
+                        </span>
                       </header>
                       <div className="space-y-2">{tripRooms.map((room) => renderRoomCard(room))}</div>
                     </section>
@@ -806,8 +825,12 @@ export default function ModernChatPage() {
                     <section className="space-y-3">
                       <header className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full bg-blue-400" />
-                        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-300">Privados</h2>
-                        <span className="rounded-full bg-slate-800/70 px-2 py-0.5 text-xs text-slate-500">{privateRooms.length}</span>
+                        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                          Privados
+                        </h2>
+                        <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800/70 dark:text-slate-500">
+                          {privateRooms.length}
+                        </span>
                       </header>
                       <div className="space-y-2">{privateRooms.map((room) => renderRoomCard(room))}</div>
                     </section>
@@ -817,18 +840,18 @@ export default function ModernChatPage() {
             </div>
           </div>
         ) : (
-          <div className="flex h-full w-full flex-col">
-            <div className="bg-slate-900/85 backdrop-blur-xl border-b border-slate-700/60 p-4 sm:p-6">
+          <div className="flex h-full w-full min-h-0 flex-col overflow-hidden">
+            <div className="safe-area-top sticky top-0 z-20 border-b border-slate-200/70 bg-white/90 p-4 backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/85 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <Button
                     variant="ghost"
-                    className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-800/70 px-4 text-slate-200 hover:bg-slate-700/60"
+                    className="inline-flex h-10 items-center gap-2 rounded-full bg-slate-200/80 px-4 text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-700/60"
                     onClick={closeActiveRoom}
                   >
                     ← Chats
                   </Button>
-                  <div className="hidden h-12 w-12 items-center justify-center rounded-full bg-slate-800/70 text-lg font-semibold text-emerald-200 shadow-inner sm:flex">
+                  <div className="hidden h-12 w-12 items-center justify-center rounded-full bg-emerald-500/15 text-lg font-semibold text-emerald-600 shadow-inner dark:bg-slate-800/70 dark:text-emerald-200 sm:flex">
                     <span>{getRoomInitial(activeRoom)}</span>
                   </div>
                   <div>
@@ -855,18 +878,22 @@ export default function ModernChatPage() {
                               console.error('Error navigating to profile:', navigateError)
                             }
                           }}
-                          className="text-xl font-semibold text-white transition-colors hover:text-emerald-300"
+                          className="text-xl font-semibold text-slate-900 transition-colors hover:text-emerald-500 dark:text-white dark:hover:text-emerald-300"
                         >
                           {getRoomTitle(activeRoom)}
                         </button>
                       ) : (
-                        <h2 className="text-xl font-semibold text-white">{getRoomTitle(activeRoom)}</h2>
+                        <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{getRoomTitle(activeRoom)}</h2>
                       )}
                       <div className="flex items-center gap-2 mt-1">
                         <span
                           className={`
                           text-xs px-2 py-1 rounded-full font-medium
-                          ${activeRoomBadge === 'Privado' ? 'bg-blue-500/20 text-blue-300' : 'bg-emerald-500/20 text-emerald-300'}
+                          ${
+                            activeRoomBadge === 'Privado'
+                              ? 'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300'
+                              : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300'
+                          }
                         `}
                         >
                           {activeRoomBadge}
@@ -943,20 +970,20 @@ export default function ModernChatPage() {
             </div>
 
             {showExpenses ? (
-              <div className="flex-1 overflow-hidden bg-slate-900/70">
+              <div className="flex-1 overflow-hidden bg-white/90 dark:bg-slate-900/70">
                 <ChatExpenses tripId={activeRoom?.trip_id} roomId={activeRoomId} userId={profile?.user_id} userNames={userNames} />
               </div>
             ) : (
               <div
-                className="flex flex-1 flex-col bg-slate-900/70"
+                className="flex min-h-0 flex-1 flex-col bg-white/90 dark:bg-slate-900/70"
                 style={{
                   backgroundImage:
-                    'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.08) 25%, transparent 25%, transparent 50%, rgba(59, 130, 246, 0.06) 50%, rgba(59, 130, 246, 0.06) 75%, transparent 75%, transparent 100%)',
+                    'linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.05) 25%, transparent 25%, transparent 50%, rgba(59, 130, 246, 0.04) 50%, rgba(59, 130, 246, 0.04) 75%, transparent 75%, transparent 100%)',
                   backgroundSize: '48px 48px',
                 }}
               >
-                <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
-                  <div className="mx-auto flex max-w-4xl flex-col gap-4 pb-8">
+                <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+                  <div className="mx-auto flex max-w-4xl flex-col gap-4 pb-24">
                     {messages.map((message) => {
                           const isOwn = profile?.user_id && String(message.user_id) === String(profile.user_id)
                           const isApplication = typeof message?.content === 'string' && message.content.startsWith('APP|')
@@ -984,18 +1011,18 @@ export default function ModernChatPage() {
                           })()
                           const bubbleColorClasses = isOwn
                             ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border border-emerald-400/40'
-                            : 'bg-slate-800/80 text-slate-100 border border-slate-700/60'
+                            : 'bg-white text-slate-800 border border-slate-200 dark:bg-slate-800/80 dark:text-slate-100 dark:border-slate-700/60'
                           const bubbleRadiusClasses = isOwn ? 'rounded-3xl rounded-br-md' : 'rounded-3xl rounded-bl-md'
-                          const timeTextColor = isOwn ? 'text-emerald-50/80' : 'text-slate-300/70'
+                          const timeTextColor = isOwn ? 'text-emerald-600 dark:text-emerald-50/80' : 'text-slate-500 dark:text-slate-300/70'
 
                           return (
                             <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                               <div className="max-w-[80%] sm:max-w-[70%]">
                                 <div
-                                  className={`relative px-4 py-2.5 text-sm leading-relaxed shadow-lg shadow-black/30 backdrop-blur-sm ${bubbleColorClasses} ${bubbleRadiusClasses}`}
+                                  className={`relative px-4 py-2.5 text-sm leading-relaxed shadow-lg shadow-slate-200/70 backdrop-blur-sm dark:shadow-black/30 ${bubbleColorClasses} ${bubbleRadiusClasses}`}
                                 >
                                   {showSenderLabel && (
-                                    <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-emerald-200/80">
+                                    <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-200/80">
                                       {getSenderLabel(message)}
                                     </div>
                                   )}
@@ -1014,7 +1041,7 @@ export default function ModernChatPage() {
                                           href={message.file_url}
                                           target="_blank"
                                           rel="noreferrer"
-                                          className="block overflow-hidden rounded-xl border border-white/10"
+                                          className="block overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10"
                                         >
                                           <img
                                             src={message.file_url}
@@ -1031,7 +1058,7 @@ export default function ModernChatPage() {
                                             } catch (previewError) {
                                               console.error('Error parsing shared post:', previewError)
                                               return (
-                                                <div className="p-3 bg-slate-700/50 rounded-lg text-slate-300 text-sm">
+                                                <div className="rounded-lg bg-slate-100 p-3 text-sm text-slate-700 dark:bg-slate-700/50 dark:text-slate-300">
                                                   📱 Post compartido (error al cargar preview)
                                                 </div>
                                               )
@@ -1053,15 +1080,19 @@ export default function ModernChatPage() {
                                             Tu navegador no soporta el elemento de audio.
                                           </audio>
                                           {audioTranscriptions[message.id] && (
-                                            <div className="mt-2 p-3 bg-slate-700/50 rounded-lg border border-slate-600">
+                                            <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-600 dark:bg-slate-700/50">
                                               <div className="flex items-center gap-2 mb-2">
-                                                <span className="text-xs font-medium text-emerald-300">📝 Transcripción:</span>
+                                                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-300">
+                                                  📝 Transcripción:
+                                                </span>
                                               </div>
-                                              <p className="text-sm text-slate-200">{audioTranscriptions[message.id]}</p>
+                                              <p className="text-sm text-slate-700 dark:text-slate-200">
+                                                {audioTranscriptions[message.id]}
+                                              </p>
                                             </div>
                                           )}
                                           {!audioTranscriptions[message.id] && transcribingAudio !== message.id && (
-                                            <div className="mt-1 text-xs text-slate-500">
+                                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                                               💡 Haz clic en "Transcribir" para convertir el audio a texto automáticamente (sin sonido)
                                             </div>
                                           )}
@@ -1070,7 +1101,7 @@ export default function ModernChatPage() {
                                               href={message.file_url}
                                               target="_blank"
                                               rel="noreferrer"
-                                              className="inline-flex items-center gap-2 text-sm text-emerald-300 hover:text-emerald-200"
+                                              className="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200"
                                             >
                                               Descargar audio
                                             </a>
@@ -1078,7 +1109,7 @@ export default function ModernChatPage() {
                                               <button
                                                 onClick={() => handleTranscribeAudio(message.id, message.file_url)}
                                                 disabled={transcribingAudio === message.id}
-                                                className="inline-flex items-center gap-1 text-sm text-blue-300 hover:text-blue-200 disabled:opacity-50 disabled:cursor-not-allowed px-2 py-1 rounded border border-blue-400/30 hover:bg-blue-500/10"
+                                              className="inline-flex items-center gap-1 rounded border border-blue-200 px-2 py-1 text-sm text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-400/30 dark:text-blue-300 dark:hover:bg-blue-500/10 dark:hover:text-blue-200"
                                               >
                                                 {transcribingAudio === message.id ? (
                                                   <>
@@ -1097,7 +1128,7 @@ export default function ModernChatPage() {
                                           href={message.file_url}
                                           target="_blank"
                                           rel="noreferrer"
-                                          className="inline-flex items-center gap-2 text-sm text-emerald-300 hover:text-emerald-200"
+                                          className="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-500 dark:text-emerald-300 dark:hover:text-emerald-200"
                                         >
                                           Descargar archivo
                                         </a>
@@ -1124,7 +1155,9 @@ export default function ModernChatPage() {
                                         return (
                                           <div
                                             className={`mt-3 text-sm font-semibold ${
-                                              status === 'accepted' ? 'text-emerald-300' : 'text-red-300'
+                                              status === 'accepted'
+                                                ? 'text-emerald-600 dark:text-emerald-300'
+                                                : 'text-red-500 dark:text-red-300'
                                             }`}
                                           >
                                             {status === 'accepted'
@@ -1188,11 +1221,11 @@ export default function ModernChatPage() {
 
                                   <div className="mt-2 flex items-center justify-end gap-2 text-[11px]">
                                     {timeLabel && <span className={timeTextColor}>{timeLabel}</span>}
-                                    {isOwn && <span className="text-emerald-100">✓✓</span>}
+                                    {isOwn && <span className="text-emerald-500 dark:text-emerald-100">✓✓</span>}
                                     {isOwn && (
                                       <button
                                         onClick={() => confirmDeleteMessage(message.id)}
-                                        className="ml-1 text-red-300/80 transition hover:text-red-200"
+                                        className="ml-1 text-red-500/80 transition hover:text-red-400 dark:text-red-300/80 dark:hover:text-red-200"
                                         title="Eliminar mensaje"
                                       >
                                         🗑️
@@ -1206,21 +1239,21 @@ export default function ModernChatPage() {
                         })}
 
                         {messages.length === 0 && (
-                          <div className="text-center py-12">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-700/50 flex items-center justify-center">
-                              <svg className="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="py-12 text-center">
+                            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-200/70 dark:bg-slate-700/50">
+                              <svg className="h-8 w-8 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                               </svg>
                             </div>
-                            <p className="text-slate-400 text-sm">Aún no hay mensajes en este chat</p>
-                            <p className="text-slate-500 text-xs mt-1">¡Sé el primero en escribir algo!</p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">Aún no hay mensajes en este chat</p>
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">¡Sé el primero en escribir algo!</p>
                           </div>
                         )}
                     <div ref={messageEndRef} />
                   </div>
                 </div>
 
-                <div className="flex-shrink-0 border-t border-slate-700/60 bg-slate-900/85 px-4 py-4 backdrop-blur-xl sm:px-6">
+                <div className="safe-area-bottom z-20 flex-shrink-0 border-t border-slate-200/70 bg-white/95 px-4 py-4 backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/85 sm:px-6">
                   <div className="mx-auto max-w-4xl">
                     {showAudioRecorder && (
                       <div className="mb-4">
@@ -1247,7 +1280,7 @@ export default function ModernChatPage() {
                         type="button"
                         variant="secondary"
                         onClick={() => fileInputRef.current?.click()}
-                        className="h-12 w-12 shrink-0 rounded-full bg-slate-800/70 text-lg text-slate-200 hover:bg-slate-700/80"
+                        className="h-12 w-12 shrink-0 rounded-full bg-slate-200 text-lg text-slate-600 transition-colors hover:bg-slate-300 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-700/80"
                       >
                         📎
                       </Button>
@@ -1255,7 +1288,7 @@ export default function ModernChatPage() {
                         type="button"
                         variant="secondary"
                         onClick={() => setShowAudioRecorder((prev) => !prev)}
-                        className="h-12 w-12 shrink-0 rounded-full bg-slate-800/70 text-lg text-slate-200 hover:bg-slate-700/80"
+                        className="h-12 w-12 shrink-0 rounded-full bg-slate-200 text-lg text-slate-600 transition-colors hover:bg-slate-300 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-700/80"
                       >
                         🎤
                       </Button>
@@ -1270,11 +1303,11 @@ export default function ModernChatPage() {
                             }
                           }}
                           placeholder="Escribí un mensaje..."
-                          className="rounded-full border-slate-700 bg-slate-800/60 py-3 pl-5 pr-24 text-slate-200 placeholder:text-slate-500 focus:border-emerald-400/60"
+                          className="rounded-full border-slate-200 bg-white py-3 pl-5 pr-24 text-slate-700 placeholder:text-slate-400 shadow-sm focus:border-emerald-400/60 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200 dark:placeholder:text-slate-500"
                         />
                         <button
                           type="button"
-                          className="absolute right-12 top-1/2 -translate-y-1/2 text-xl text-slate-400 transition-colors hover:text-emerald-300"
+                          className="absolute right-12 top-1/2 -translate-y-1/2 text-xl text-slate-400 transition-colors hover:text-emerald-500 dark:hover:text-emerald-300"
                           onClick={() => setShowAudioTranscriber((prev) => !prev)}
                           title="Transcribir voz"
                         >
@@ -1282,7 +1315,7 @@ export default function ModernChatPage() {
                         </button>
                         <button
                           type="button"
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xl text-slate-400 transition-colors hover:text-emerald-300"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xl text-slate-400 transition-colors hover:text-emerald-500 dark:hover:text-emerald-300"
                           onClick={() => setShowEmojiPicker((prev) => !prev)}
                           title="Agregar emoji"
                         >
@@ -1313,12 +1346,14 @@ export default function ModernChatPage() {
       </div>
 
       {isChatOpen && chatInfoOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
-          <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-slate-900/90 backdrop-blur-xl p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-xl font-semibold text-white">{getRoomTitle(activeRoom) || 'Integrantes'}</h3>
-                <p className="text-sm text-slate-400">Conocé quién está colaborando en este espacio.</p>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
+                  {getRoomTitle(activeRoom) || 'Integrantes'}
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Conocé quién está colaborando en este espacio.</p>
               </div>
               <Button variant="secondary" onClick={() => setChatInfoOpen(false)}>
                 Cerrar
@@ -1327,7 +1362,7 @@ export default function ModernChatPage() {
 
             <div className="mt-6 space-y-3 max-h-72 overflow-y-auto pr-1">
               {(chatMembers || []).length === 0 && (
-                <div className="rounded-lg border border-slate-700/50 bg-slate-900/40 px-4 py-6 text-center text-sm text-slate-400">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-600 dark:border-slate-700/50 dark:bg-slate-900/40 dark:text-slate-400">
                   No se pudieron cargar los integrantes o no hay datos para mostrar.
                 </div>
               )}
@@ -1337,7 +1372,7 @@ export default function ModernChatPage() {
                   <button
                     key={member.user_id}
                     type="button"
-                    className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left transition hover:border-emerald-400/50 hover:bg-emerald-500/10"
+                    className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-emerald-400/50 hover:bg-emerald-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-emerald-500/10"
                     onClick={() => {
                       try {
                         if (!member?.user_id) return
@@ -1348,15 +1383,17 @@ export default function ModernChatPage() {
                       }
                     }}
                   >
-                    <span className="font-semibold text-white">{member.name || 'Usuario'}</span>
-                    <span className="text-sm text-slate-400">Ver perfil</span>
+                    <span className="font-semibold text-slate-800 dark:text-white">{member.name || 'Usuario'}</span>
+                    <span className="text-sm text-emerald-600 dark:text-emerald-300">Ver perfil</span>
                   </button>
                 ))}
             </div>
 
             {activeRoom?.trip_id && (
-              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
-                <span className="text-sm text-slate-400">¿Querés salir del viaje? Podés hacerlo desde acá.</span>
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+                <span className="text-sm text-slate-600 dark:text-slate-400">
+                  ¿Querés salir del viaje? Podés hacerlo desde acá.
+                </span>
                 <div className="flex gap-2">
                   {(() => {
                     const isOwner = (tripsBase || []).some(
@@ -1442,30 +1479,30 @@ export default function ModernChatPage() {
       )}
 
       {isChatOpen && showDeleteMessageConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="bg-gradient-to-r from-red-500/20 to-red-600/20 border-b border-red-500/30 px-6 py-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in duration-200 dark:border-slate-700 dark:bg-slate-900">
+            <div className="border-b border-red-500/30 bg-gradient-to-r from-red-500/15 to-red-600/15 px-6 py-4">
               <div className="flex items-center gap-3">
-                <div className="bg-red-500/20 p-2 rounded-full">
+                <div className="rounded-full bg-red-500/20 p-2">
                   <span className="text-2xl">🗑️</span>
                 </div>
-                <h3 className="text-xl font-bold text-white">Eliminar Mensaje</h3>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Eliminar Mensaje</h3>
               </div>
             </div>
 
             <div className="px-6 py-6">
-              <p className="text-slate-300 text-base leading-relaxed">
+              <p className="text-base leading-relaxed text-slate-600 dark:text-slate-300">
                 ¿Estás seguro de que quieres eliminar este mensaje? Esta acción no se puede deshacer.
               </p>
             </div>
 
-            <div className="bg-slate-800/50 px-6 py-4 flex gap-3 justify-end">
+            <div className="flex gap-3 justify-end border-t border-slate-200 bg-slate-50 px-6 py-4 dark:border-transparent dark:bg-slate-800/50">
               <button
                 onClick={() => {
                   setShowDeleteMessageConfirm(false)
                   setMessageToDelete(null)
                 }}
-                className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors"
+                className="rounded-lg bg-slate-200 px-6 py-2.5 font-semibold text-slate-700 transition-colors hover:bg-slate-300 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
               >
                 Cancelar
               </button>

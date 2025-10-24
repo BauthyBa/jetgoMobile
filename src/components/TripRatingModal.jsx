@@ -163,3 +163,5 @@ const TripRatingModal = ({ isOpen, onClose, trip, userId, onRated }) => {
 };
 
 export default TripRatingModal;
+
+

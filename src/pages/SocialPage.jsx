@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '@/services/supabase'
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Smile, Plus, ChevronLeft, ChevronRight, X, UserPlus, UserCheck, Trash2, Loader2, MapPin, CheckCircle2, PartyPopper, Sparkles } from 'lucide-react'
 import API_CONFIG from '@/config/api'
 import { sendFriendRequest } from '@/services/friends'
-
 export default function SocialPage() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
@@ -29,6 +28,7 @@ export default function SocialPage() {
   const [showStoryViewer, setShowStoryViewer] = useState(false)
   const [currentStory, setCurrentStory] = useState(null)
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0)
+  const [currentGroupIndex, setCurrentGroupIndex] = useState(0)
   const [friendshipStatuses, setFriendshipStatuses] = useState({})
   const [showPostMenu, setShowPostMenu] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -39,21 +39,21 @@ export default function SocialPage() {
   const [newPostPreview, setNewPostPreview] = useState(null)
   const [creatingPost, setCreatingPost] = useState(false)
   const [showStoryToast, setShowStoryToast] = useState(false)
+  const [storyProgress, setStoryProgress] = useState(0)
   const [newPostLocation, setNewPostLocation] = useState('')
   const [postSuccessMessage, setPostSuccessMessage] = useState(null)
-
+  const STORY_IMAGE_DURATION = 5000
+  const STORY_VIDEO_DURATION = 15000
   useEffect(() => {
     getCurrentUser()
     loadPosts()
   }, [])
-
   useEffect(() => {
     if (user?.userid) {
       loadStories()
       loadSuggestions()
     }
   }, [user])
-
   useEffect(() => {
     const handleCreatePostRequest = () => {
       if (!user?.id) {
@@ -63,13 +63,11 @@ export default function SocialPage() {
       }
       setShowCreatePostModal(true)
     }
-
     window.addEventListener('social:create-post', handleCreatePostRequest)
     return () => {
       window.removeEventListener('social:create-post', handleCreatePostRequest)
     }
   }, [user, navigate])
-
 useEffect(() => {
   return () => {
     if (newPostPreview) {
@@ -77,13 +75,11 @@ useEffect(() => {
     }
   }
 }, [newPostPreview])
-
   useEffect(() => {
     if (!postSuccessMessage) return
     const timer = window.setTimeout(() => setPostSuccessMessage(null), 4000)
     return () => window.clearTimeout(timer)
   }, [postSuccessMessage])
-
   const getCurrentUser = async () => {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser()
@@ -112,13 +108,11 @@ useEffect(() => {
       console.error('Error getting user:', error)
     }
   }
-
   const normalizePost = (post) => ({
     ...post,
     likes_count: post?.likes_count ?? 0,
     comments_count: post?.comments_count ?? 0,
   })
-
   const fetchPostsFromSupabase = async () => {
     try {
       const { data, error } = await supabase
@@ -146,14 +140,11 @@ useEffect(() => {
         .eq('is_public', true)
         .order('created_at', { ascending: false })
         .limit(50)
-
       if (error) throw error
-
       const mapped = (data || []).map((item) => ({
         ...item,
         author: item.author || {},
       }))
-
       setPosts(mapped.map(normalizePost))
     } catch (supabaseError) {
       console.error('Error loading posts from Supabase:', supabaseError)
@@ -161,7 +152,6 @@ useEffect(() => {
       setLoading(false)
     }
   }
-
   const loadPosts = async () => {
     setLoading(true)
     try {
@@ -181,7 +171,6 @@ useEffect(() => {
       await fetchPostsFromSupabase()
     }
   }
-
   const loadStories = async () => {
     try {
       // Cargar todas las historias
@@ -196,39 +185,88 @@ useEffect(() => {
           setStories([])
           return
         }
-
         // Obtener lista de amigos (solicitudes aceptadas)
         const { data: friendRequests } = await supabase
           .from('friend_requests')
           .select('sender_id, receiver_id')
           .or(`sender_id.eq.${user.userid},receiver_id.eq.${user.userid}`)
           .eq('status', 'accepted')
-
         // Crear set de IDs de amigos
         const friendIds = new Set()
         friendRequests?.forEach(req => {
           const friendId = req.sender_id === user.userid ? req.receiver_id : req.sender_id
           friendIds.add(friendId)
         })
-
         // Filtrar historias: solo de amigos o propias
         const filteredStories = allStories.filter(story => {
           const storyUserId = story.user_id || story.author?.userid || story.author?.id
           // Mostrar si es propia o de un amigo
           return storyUserId === user.userid || friendIds.has(storyUserId)
         })
-
         setStories(filteredStories)
       }
     } catch (error) {
       console.error('Error loading stories:', error)
     }
   }
-
+  const groupedStories = useMemo(() => {
+    if (!stories || stories.length === 0) return []
+    const groupsMap = new Map()
+    const order = []
+    stories.forEach((story) => {
+      const author = story.author || {}
+      const userId =
+        author?.userid ||
+        story.user_id ||
+        author?.id ||
+        `story-${story.id}`
+      if (!groupsMap.has(userId)) {
+        const group = {
+          userId,
+          author,
+          stories: [],
+        }
+        groupsMap.set(userId, group)
+        order.push(group)
+      }
+      const group = groupsMap.get(userId)
+      if (!group.author || !group.author.userid) {
+        group.author = author
+      }
+      group.stories.push(story)
+    })
+    order.forEach((group) => {
+      group.stories.sort((a, b) => {
+        const dateA = new Date(a.created_at || 0).getTime()
+        const dateB = new Date(b.created_at || 0).getTime()
+        return dateA - dateB
+      })
+    })
+    return order
+  }, [stories])
+  const otherStoryGroups = useMemo(() => {
+    const currentUserId = user?.userid ? String(user.userid) : null
+    return groupedStories
+      .map((group, index) => ({ group, index }))
+      .filter(({ group }) => {
+        if (!currentUserId) return true
+        const groupId = group.userId != null ? String(group.userId) : null
+        return groupId !== currentUserId
+      })
+  }, [groupedStories, user?.userid])
+  const ownStoryGroupIndex = useMemo(() => {
+    const currentUserId = user?.userid ? String(user.userid) : null
+    if (!currentUserId) return -1
+    return groupedStories.findIndex((group) => {
+      const groupId = group.userId != null ? String(group.userId) : null
+      return groupId === currentUserId
+    })
+  }, [groupedStories, user?.userid])
+  const ownStoriesCount =
+    ownStoryGroupIndex >= 0 ? groupedStories[ownStoryGroupIndex]?.stories?.length || 0 : 0
   const loadSuggestions = async () => {
     try {
       if (!user?.userid) return
-
       // Cargar solicitudes de amistad aceptadas (usar friend_requests, no friendships)
       const { data: acceptedRequests } = await supabase
         .from('friend_requests')
@@ -241,7 +279,6 @@ useEffect(() => {
         friendIds.add(req.sender_id === user.userid ? req.receiver_id : req.sender_id)
       })
       friendIds.add(user.userid) // Excluirse a sí mismo
-
       // Cargar usuarios sugeridos (no amigos)
       let query = supabase
         .from('User')
@@ -254,7 +291,6 @@ useEffect(() => {
       
       const { data: users } = await query.limit(5)
       setSuggestedUsers(users || [])
-
       // Cargar estados de amistad para usuarios sugeridos
       if (users && users.length > 0) {
         const statuses = {}
@@ -269,7 +305,6 @@ useEffect(() => {
         }
         setFriendshipStatuses(statuses)
       }
-
       // Cargar viajes del usuario (usar trip_members, no trip_participants)
       const { data: userTripMemberships } = await supabase
         .from('trip_members')
@@ -277,9 +312,7 @@ useEffect(() => {
         .eq('user_id', user.userid)
       
       const userTripIds = userTripMemberships?.map(t => t.trip_id) || []
-
       console.log('User trip IDs:', userTripIds)
-
       // Sugerir viajes activos y disponibles
       let tripQuery = supabase
         .from('trips')
@@ -299,21 +332,17 @@ useEffect(() => {
       if (tripsError) {
         console.error('Error loading trips:', tripsError)
       }
-
       console.log('All trips loaded:', allTrips?.length)
-
       // Filtrar viajes en los que el usuario NO está
       const filteredTrips = (allTrips || []).filter(trip => !userTripIds.includes(trip.id))
       
       console.log('Filtered trips (not joined):', filteredTrips.length)
-
       // Tomar los primeros 5
       setSuggestedTrips(filteredTrips.slice(0, 5))
     } catch (error) {
       console.error('Error loading suggestions:', error)
     }
   }
-
   const likePost = async (postId) => {
     try {
       const url = `${API_CONFIG.getEndpointUrl(API_CONFIG.SOCIAL_ENDPOINTS.POSTS)}${postId}/like/`
@@ -340,7 +369,6 @@ useEffect(() => {
       console.error('Error liking post:', error)
     }
   }
-
   const toggleComments = async (postId) => {
     setShowComments(prev => ({
       ...prev,
@@ -352,7 +380,6 @@ useEffect(() => {
       await loadComments(postId)
     }
   }
-
   const loadComments = async (postId) => {
     try {
       const url = `${API_CONFIG.getEndpointUrl(API_CONFIG.SOCIAL_ENDPOINTS.POSTS)}${postId}/comments/`
@@ -369,17 +396,14 @@ useEffect(() => {
       console.error('Error loading comments:', error)
     }
   }
-
   const createComment = async (postId) => {
     try {
       if (!user?.id) {
         alert('Debes iniciar sesión para comentar')
         return
       }
-
       const commentText = newComment[postId]?.trim()
       if (!commentText) return
-
       const url = `${API_CONFIG.getEndpointUrl(API_CONFIG.SOCIAL_ENDPOINTS.POSTS)}${postId}/comments/`
       const response = await fetch(url, {
         method: 'POST',
@@ -389,7 +413,6 @@ useEffect(() => {
           content: commentText
         })
       })
-
       if (response.ok) {
         // Limpiar input
         setNewComment(prev => ({
@@ -403,22 +426,18 @@ useEffect(() => {
       console.error('Error creating comment:', error)
     }
   }
-
   const sharePost = async (post) => {
     setSelectedPost(post)
     setShowShareModal(true)
     await loadUserChats()
   }
-
   const confirmDeletePost = (postId) => {
     setPostToDelete(postId)
     setShowDeleteConfirm(true)
     setShowPostMenu(null)
   }
-
   const deletePost = async () => {
     if (!postToDelete) return
-
     try {
       const url = `${API_CONFIG.getEndpointUrl(API_CONFIG.SOCIAL_ENDPOINTS.POSTS)}${postToDelete}/`
       const response = await fetch(url, {
@@ -427,7 +446,6 @@ useEffect(() => {
           'Content-Type': 'application/json',
         },
       })
-
       if (response.ok) {
         // Eliminar del estado local
         setPosts(prevPosts => prevPosts.filter(p => p.id !== postToDelete))
@@ -444,43 +462,36 @@ useEffect(() => {
       setPostToDelete(null)
     }
   }
-
   const loadUserChats = async () => {
     try {
       if (!user?.id) return
-
       // Obtener IDs de rooms del usuario
       const { data: memberData } = await supabase
         .from('chat_members')
         .select('room_id')
         .eq('user_id', user.id)
-
       const roomIds = memberData?.map(m => m.room_id) || []
       if (roomIds.length === 0) {
         setUserChats([])
         return
       }
-
       // Obtener chats de viajes
       const { data: tripsData } = await supabase
         .from('chat_rooms')
         .select(`id, name, trip_id, is_private, trips(name, destination)`)
         .in('id', roomIds)
         .not('trip_id', 'is', null)
-
       const tripChats = (tripsData || []).map(room => ({
         id: room.id,
         name: room.trips?.destination ? room.trips.destination.split(',')[0].trim() : room.name,
         type: 'trip'
       }))
-
       // Obtener chats privados
       const { data: privateData } = await supabase
         .from('chat_rooms')
         .select('id, name, is_private')
         .in('id', roomIds)
         .eq('is_private', true)
-
       const privateChats = []
       for (const room of privateData || []) {
         // Obtener el otro usuario del chat
@@ -489,7 +500,6 @@ useEffect(() => {
           .select('user_id')
           .eq('room_id', room.id)
           .neq('user_id', user.id)
-
         if (members && members.length > 0) {
           const otherUserId = members[0].user_id
           const { data: userData } = await supabase
@@ -497,7 +507,6 @@ useEffect(() => {
             .select('nombre, apellido, avatar_url')
             .eq('userid', otherUserId)
             .single()
-
           if (userData) {
             privateChats.push({
               id: room.id,
@@ -508,17 +517,14 @@ useEffect(() => {
           }
         }
       }
-
       setUserChats([...tripChats, ...privateChats])
     } catch (error) {
       console.error('Error loading chats:', error)
     }
   }
-
   const shareToChat = async (chatId) => {
     try {
       if (!selectedPost || !user?.id) return
-
       const sharedPostData = {
         post_id: selectedPost.id,
         content: selectedPost.content,
@@ -534,9 +540,7 @@ useEffect(() => {
         likes_count: selectedPost.likes_count || 0,
         comments_count: selectedPost.comments_count || 0
       }
-
       const messageContent = `📱 Post compartido de ${selectedPost.author?.nombre} ${selectedPost.author?.apellido}`
-
       const { error } = await supabase
         .from('chat_messages')
         .insert({
@@ -549,7 +553,6 @@ useEffect(() => {
           file_type: 'shared_post',
           is_file: false
         })
-
       if (!error) {
         alert('Post compartido exitosamente!')
         setShowShareModal(false)
@@ -563,7 +566,6 @@ useEffect(() => {
       alert('Error al compartir el post')
     }
   }
-
   const removePostFile = () => {
     setNewPostFile(null)
     setNewPostPreview((prev) => {
@@ -577,18 +579,15 @@ useEffect(() => {
       }
     }
   }
-
   const resetCreatePostForm = () => {
     setNewPostContent('')
     setNewPostLocation('')
     removePostFile()
   }
-
   const closeCreatePostModal = () => {
     setShowCreatePostModal(false)
     resetCreatePostForm()
   }
-
   const handlePostFileChange = (event) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -596,21 +595,17 @@ useEffect(() => {
       alert('Solo se permiten imágenes o videos')
       return
     }
-
     setNewPostFile(file)
     setNewPostPreview((prev) => {
       if (prev) URL.revokeObjectURL(prev)
       return URL.createObjectURL(file)
     })
-
     event.target.value = ''
   }
-
   const createPostViaSupabase = async (content, location) => {
     let uploadWarning = null
     let mediaUrl = null
     let mediaField = null
-
     if (newPostFile) {
       try {
         const extension = newPostFile.name.split('.').pop()
@@ -621,13 +616,10 @@ useEffect(() => {
             cacheControl: '3600',
             upsert: false,
           })
-
         if (uploadError) throw uploadError
-
         const { data: publicUrlData } = supabase.storage
           .from('jetgo-posts')
           .getPublicUrl(data.path)
-
         mediaUrl = publicUrlData?.publicUrl || null
         if (mediaUrl) {
           mediaField = newPostFile.type.startsWith('video/') ? 'video_url' : 'image_url'
@@ -639,40 +631,33 @@ useEffect(() => {
         uploadWarning = 'El archivo adjunto no pudo subirse. Se publicó solo el texto.'
       }
     }
-
     const insertPayload = {
       user_id: user.id,
       content,
       is_public: true,
     }
-
     if (mediaUrl && mediaField) {
       insertPayload[mediaField] = mediaUrl
     }
     if (location) {
       insertPayload.location = location
     }
-
     const { error: insertError } = await supabase.from('posts').insert(insertPayload)
     if (insertError) throw insertError
-
     return { warning: uploadWarning }
   }
-
   const createPost = async () => {
     if (!user?.id) {
       alert('Debes iniciar sesión para crear un post')
       navigate('/login')
       return
     }
-
     const content = newPostContent.trim()
     const location = newPostLocation.trim()
     if (!content && !newPostFile) {
       alert('Escribí algo o agrega una imagen/video antes de publicar')
       return
     }
-
     try {
       setCreatingPost(true)
       const formData = new FormData()
@@ -684,17 +669,14 @@ useEffect(() => {
       if (newPostFile) {
         formData.append('file', newPostFile)
       }
-
       const url = API_CONFIG.getEndpointUrl(API_CONFIG.SOCIAL_ENDPOINTS.POSTS)
       const response = await fetch(url, {
         method: 'POST',
         body: formData,
       })
-
       if (!response.ok) {
         throw new Error('API_POST_FAILED')
       }
-
       await response.json().catch(() => null)
       closeCreatePostModal()
       await loadPosts()
@@ -713,25 +695,21 @@ useEffect(() => {
       setCreatingPost(false)
     }
   }
-
   const openStoryModal = () => {
     setShowStoryModal(true)
   }
-
   const closeStoryModal = () => {
     setShowStoryModal(false)
     setStoryFile(null)
     setStoryPreview(null)
     setStoryContent('')
   }
-
   const showStorySuccessToast = () => {
     setShowStoryToast(true)
     window.setTimeout(() => {
       setShowStoryToast(false)
     }, 3200)
   }
-
   const handleStoryFileChange = (e) => {
     const file = e.target.files[0]
     if (file) {
@@ -740,7 +718,6 @@ useEffect(() => {
         alert('Solo se permiten imágenes y videos')
         return
       }
-
       setStoryFile(file)
       
       // Crear preview
@@ -751,34 +728,28 @@ useEffect(() => {
       reader.readAsDataURL(file)
     }
   }
-
   const createStory = async () => {
     try {
       if (!user?.id) {
         alert('Debes iniciar sesión para crear una historia')
         return
       }
-
       if (!storyFile) {
         alert('Debes seleccionar una imagen o video')
         return
       }
-
       setUploadingStory(true)
-
       // Crear FormData
       const formData = new FormData()
       formData.append('user_id', user.id)
       formData.append('content', storyContent)
       formData.append('file', storyFile)
-
       // Enviar al backend
       const url = API_CONFIG.getEndpointUrl(API_CONFIG.SOCIAL_ENDPOINTS.STORIES)
       const response = await fetch(url, {
         method: 'POST',
         body: formData
       })
-
       if (response.ok) {
         const result = await response.json()
         console.log('Historia creada:', result)
@@ -800,7 +771,6 @@ useEffect(() => {
       setUploadingStory(false)
     }
   }
-
   const insertEmoji = (postId, emoji) => {
     setNewComment(prev => ({
       ...prev,
@@ -811,11 +781,9 @@ useEffect(() => {
       [postId]: false
     }))
   }
-
   const goToUserProfile = (userId) => {
     navigate(`/profile/${userId}`)
   }
-
   const handleSendFriendRequest = async (receiverId) => {
     if (!user?.id) return
     
@@ -826,7 +794,6 @@ useEffect(() => {
         .select('id, status')
         .or(`and(sender_id.eq.${user.id},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${user.id})`)
         .maybeSingle()
-
       if (existingRequest) {
         // Si existe y está rechazada, actualizar a pending
         if (existingRequest.status === 'rejected') {
@@ -839,7 +806,6 @@ useEffect(() => {
               created_at: new Date().toISOString()
             })
             .eq('id', existingRequest.id)
-
           if (updateError) {
             console.error('Error actualizando solicitud:', updateError)
             throw updateError
@@ -863,39 +829,154 @@ useEffect(() => {
       alert('Error al enviar la solicitud de amistad')
     }
   }
-
-  const openStoryViewer = (storyIndex) => {
-    if (stories.length > 0) {
-      setCurrentStoryIndex(storyIndex)
-      setCurrentStory(stories[storyIndex])
-      setShowStoryViewer(true)
-    }
-  }
-
-  const closeStoryViewer = () => {
+  const closeStoryViewer = useCallback(() => {
     setShowStoryViewer(false)
     setCurrentStory(null)
     setCurrentStoryIndex(0)
-  }
+    setCurrentGroupIndex(0)
+    setStoryProgress(0)
+  }, [])
+  const openStoryViewer = useCallback(
+    (groupIndex, storyIndex = 0) => {
+      const group = groupedStories[groupIndex]
+      if (!group || group.stories.length === 0) return
+      const clampedIndex = Math.min(Math.max(storyIndex, 0), group.stories.length - 1)
+      setCurrentGroupIndex(groupIndex)
+      setCurrentStoryIndex(clampedIndex)
+      setCurrentStory(group.stories[clampedIndex])
+      setStoryProgress(0)
+      setShowStoryViewer(true)
+    },
+    [groupedStories],
+  )
 
-  const nextStory = () => {
-    if (currentStoryIndex < stories.length - 1) {
+  const handleOwnStoryCircleClick = useCallback(() => {
+    if (ownStoryGroupIndex >= 0 && groupedStories[ownStoryGroupIndex]?.stories?.length > 0) {
+      openStoryViewer(ownStoryGroupIndex)
+    } else {
+      openStoryModal()
+    }
+  }, [ownStoryGroupIndex, groupedStories, openStoryViewer, openStoryModal])
+  const nextStory = useCallback(() => {
+    const group = groupedStories[currentGroupIndex]
+    if (!group || group.stories.length === 0) {
+      closeStoryViewer()
+      return
+    }
+    if (currentStoryIndex < group.stories.length - 1) {
       const nextIndex = currentStoryIndex + 1
       setCurrentStoryIndex(nextIndex)
-      setCurrentStory(stories[nextIndex])
+      setCurrentStory(group.stories[nextIndex])
+      setStoryProgress(0)
+      return
+    }
+    let nextGroupIndex = currentGroupIndex + 1
+    while (
+      nextGroupIndex < groupedStories.length &&
+      groupedStories[nextGroupIndex].stories.length === 0
+    ) {
+      nextGroupIndex += 1
+    }
+    if (nextGroupIndex < groupedStories.length) {
+      const nextGroup = groupedStories[nextGroupIndex]
+      setCurrentGroupIndex(nextGroupIndex)
+      setCurrentStoryIndex(0)
+      setCurrentStory(nextGroup.stories[0])
+      setStoryProgress(0)
     } else {
       closeStoryViewer()
     }
-  }
-
-  const prevStory = () => {
+  }, [groupedStories, currentGroupIndex, currentStoryIndex, closeStoryViewer])
+  const prevStory = useCallback(() => {
+    const group = groupedStories[currentGroupIndex]
+    if (!group || group.stories.length === 0) return
     if (currentStoryIndex > 0) {
       const prevIndex = currentStoryIndex - 1
       setCurrentStoryIndex(prevIndex)
-      setCurrentStory(stories[prevIndex])
+      setCurrentStory(group.stories[prevIndex])
+      setStoryProgress(0)
+      return
     }
-  }
-
+    if (currentGroupIndex === 0) return
+    let prevGroupIndex = currentGroupIndex - 1
+    while (prevGroupIndex >= 0 && groupedStories[prevGroupIndex].stories.length === 0) {
+      prevGroupIndex -= 1
+    }
+    if (prevGroupIndex >= 0) {
+      const prevGroup = groupedStories[prevGroupIndex]
+      const lastIndex = Math.max(prevGroup.stories.length - 1, 0)
+      setCurrentGroupIndex(prevGroupIndex)
+      setCurrentStoryIndex(lastIndex)
+      setCurrentStory(prevGroup.stories[lastIndex])
+      setStoryProgress(0)
+    }
+  }, [groupedStories, currentGroupIndex, currentStoryIndex])
+  useEffect(() => {
+    if (!showStoryViewer) return
+    const group = groupedStories[currentGroupIndex]
+    if (!group || group.stories.length === 0) {
+      closeStoryViewer()
+      return
+    }
+    const safeIndex = Math.min(currentStoryIndex, group.stories.length - 1)
+    if (safeIndex !== currentStoryIndex) {
+      setCurrentStoryIndex(safeIndex)
+      setCurrentStory(group.stories[safeIndex])
+    } else if (!currentStory || currentStory.id !== group.stories[safeIndex]?.id) {
+      setCurrentStory(group.stories[safeIndex])
+    }
+  }, [
+    groupedStories,
+    currentGroupIndex,
+    currentStoryIndex,
+    showStoryViewer,
+    closeStoryViewer,
+    currentStory,
+  ])
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    if (!showStoryViewer || !currentStory) {
+      setStoryProgress(0)
+      return undefined
+    }
+    setStoryProgress(0)
+    let animationFrameId
+    let startTimestamp = 0
+    const duration =
+      currentStory.media_type === 'video' ? STORY_VIDEO_DURATION : STORY_IMAGE_DURATION
+    const tick = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp
+      const elapsed = timestamp - startTimestamp
+      const progress = Math.min(elapsed / duration, 1)
+      setStoryProgress(progress)
+      if (progress >= 1) {
+        nextStory()
+        return
+      }
+      animationFrameId = window.requestAnimationFrame(tick)
+    }
+    animationFrameId = window.requestAnimationFrame(tick)
+    return () => window.cancelAnimationFrame(animationFrameId)
+  }, [showStoryViewer, currentStory, nextStory])
+  const currentGroupStories =
+    groupedStories[currentGroupIndex]?.stories || []
+  const nextAvailableGroupIndex = useMemo(() => {
+    for (let i = currentGroupIndex + 1; i < groupedStories.length; i += 1) {
+      if (groupedStories[i]?.stories?.length) return i
+    }
+    return -1
+  }, [groupedStories, currentGroupIndex])
+  const prevAvailableGroupIndex = useMemo(() => {
+    for (let i = currentGroupIndex - 1; i >= 0; i -= 1) {
+      if (groupedStories[i]?.stories?.length) return i
+    }
+    return -1
+  }, [groupedStories, currentGroupIndex])
+  const hasPrevStory =
+    currentStoryIndex > 0 || prevAvailableGroupIndex !== -1
+  const hasNextStory =
+    currentStoryIndex < currentGroupStories.length - 1 ||
+    nextAvailableGroupIndex !== -1
   return (
     <div className="min-h-screen bg-gradient-hero text-slate-900 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-white">
       {showStoryToast && (
@@ -938,17 +1019,18 @@ useEffect(() => {
               <div className="bg-white/90 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5 mb-6 shadow-lg dark:shadow-2xl">
               <div className="flex gap-5 overflow-x-auto scrollbar-hide pb-1">
                 {/* Tu Story */}
-                <div 
-                  onClick={openStoryModal}
-                  className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group"
-                >
+                <div className="flex flex-col items-center gap-2 flex-shrink-0 group">
                   <div className="relative">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-500 via-purple-500 to-pink-500 p-[2.5px] group-hover:scale-110 transition-all duration-300 shadow-lg shadow-blue-500/30">
+                    <button
+                      type="button"
+                      onClick={handleOwnStoryCircleClick}
+                      className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-500 via-purple-500 to-pink-500 p-[2.5px] transition-all duration-300 shadow-lg shadow-blue-500/30 group-hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-400/70"
+                    >
                       <div className="w-full h-full rounded-full bg-white p-[2.5px] dark:bg-slate-900">
                         <div className="w-full h-full rounded-full overflow-hidden">
                           {user?.avatar_url ? (
-                            <img 
-                              src={user.avatar_url} 
+                            <img
+                              src={user.avatar_url}
                               alt={user.nombre || 'Tu perfil'}
                               className="w-full h-full object-cover"
                             />
@@ -957,52 +1039,81 @@ useEffect(() => {
                               <span className="text-white font-bold text-xl">
                                 {user?.nombre?.charAt(0)?.toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U'}
                               </span>
-            </div>
+                            </div>
                           )}
-          </div>
-        </div>
-      </div>
-                    <div className="absolute bottom-0 right-0 w-7 h-7 bg-blue-500 rounded-full border-3 border-slate-900 flex items-center justify-center shadow-lg">
+                        </div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        openStoryModal()
+                      }}
+                      className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-blue-500 border-3 border-slate-900 flex items-center justify-center shadow-lg hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      aria-label="Agregar historia"
+                    >
                       <Plus className="w-4 h-4 text-white" />
-                    </div>
+                    </button>
+                    {ownStoriesCount > 1 && (
+                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-blue-500 shadow-md dark:bg-slate-900 dark:text-blue-300">
+                        {ownStoriesCount}
+                      </div>
+                    )}
                   </div>
                   <span className="text-xs text-slate-600 font-semibold dark:text-slate-200">Tu historia</span>
                 </div>
-
                 {/* Stories de otros usuarios */}
-                {stories.map((story, index) => (
-                  <div 
-                    key={story.id} 
-                    onClick={() => openStoryViewer(index)}
-                    className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group"
-                  >
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-500 p-[2.5px] group-hover:scale-110 transition-all duration-300 shadow-lg shadow-pink-500/30">
-                      <div className="w-full h-full rounded-full bg-white p-[2.5px] dark:bg-slate-900">
-                        <div className="w-full h-full rounded-full overflow-hidden">
-                          {story.author?.avatar_url ? (
-                            <img 
-                              src={story.author.avatar_url} 
-                              alt={story.author.nombre}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-pink-600 to-orange-600 flex items-center justify-center">
-                              <span className="text-white font-bold text-xl">
-                                {story.author?.nombre?.charAt(0) || 'U'}
-                              </span>
-              </div>
-            )}
+                {otherStoryGroups.map(({ group, index: groupIndex }) => {
+                  const preview =
+                    group.stories[group.stories.length - 1] || group.stories[0] || {}
+                  const author = group.author || preview.author || {}
+                  const avatarUrl =
+                    author?.avatar_url || preview.author?.avatar_url || preview.avatar_url
+                  const displayName =
+                    [author?.nombre, author?.apellido].filter(Boolean).join(' ') ||
+                    preview.author?.nombre ||
+                    'Usuario'
+                  return (
+                    <div
+                      key={group.userId || `story-group-${groupIndex}`}
+                      onClick={() => openStoryViewer(groupIndex)}
+                      className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group"
+                    >
+                      <div className="relative">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-500 p-[2.5px] group-hover:scale-110 transition-all duration-300 shadow-lg shadow-pink-500/30">
+                          <div className="w-full h-full rounded-full bg-white p-[2.5px] dark:bg-slate-900">
+                            <div className="w-full h-full rounded-full overflow-hidden">
+                              {avatarUrl ? (
+                                <img
+                                  src={avatarUrl}
+                                  alt={displayName}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-pink-600 to-orange-600 flex items-center justify-center">
+                                  <span className="text-white font-bold text-xl">
+                                    {displayName?.charAt(0) || 'U'}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
+                        {group.stories.length > 1 && (
+                          <div className="absolute -bottom-2 -right-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-pink-500 shadow-md dark:bg-slate-900 dark:text-pink-300">
+                            {group.stories.length}
+                          </div>
+                        )}
                       </div>
+                      <span className="text-xs text-slate-600 font-semibold truncate w-20 text-center dark:text-slate-200">
+                        {displayName}
+                      </span>
                     </div>
-                    <span className="text-xs text-slate-600 font-semibold truncate w-20 text-center dark:text-slate-200">
-                      {story.author?.nombre || 'Usuario'}
-                    </span>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
               </div>
-
               {/* Posts Feed */}
               <div className="space-y-6 pb-8">
               {loading ? (
@@ -1080,7 +1191,6 @@ useEffect(() => {
                         )}
                       </div>
                     </div>
-
                     {/* Post Image/Video */}
                     {post.image_url && (
                       <div className="w-full aspect-square bg-slate-100 dark:bg-slate-950">
@@ -1100,7 +1210,6 @@ useEffect(() => {
                         />
                       </div>
                     )}
-
                     {/* Post Actions */}
                     <div className="px-5 pb-4">
                       <div className="flex items-center justify-between mb-4 pt-2">
@@ -1130,12 +1239,10 @@ useEffect(() => {
                           <Bookmark className="w-7 h-7" />
                         </button>
                       </div>
-
                       {/* Likes Count */}
                       <p className="mb-3 text-sm font-bold text-slate-800 dark:text-white">
                         {post.likes_count || 0} Me gusta
                       </p>
-
                       {/* Post Caption */}
                       {post.content && (
                         <p className="mb-2 text-sm leading-relaxed text-slate-700 dark:text-slate-200">
@@ -1145,7 +1252,6 @@ useEffect(() => {
                           {post.content}
                         </p>
                       )}
-
                       {/* Comments Count */}
                       {post.comments_count > 0 && (
                         <button 
@@ -1155,7 +1261,6 @@ useEffect(() => {
                           Ver los {post.comments_count} comentarios
                         </button>
                       )}
-
                       {/* Comments Section */}
                       {showComments[post.id] && (
                         <div className="mt-4 space-y-3 max-h-64 overflow-y-auto scrollbar-hide">
@@ -1189,7 +1294,6 @@ useEffect(() => {
                           ))}
                         </div>
                       )}
-
                       {/* Add Comment */}
                       <div className="relative mt-4 flex items-center gap-3 border-t border-slate-200 pt-4 dark:border-slate-700/50">
                         <div className="relative">
@@ -1249,7 +1353,6 @@ useEffect(() => {
               )}
               </div>
       </div>
-
           {/* Sidebar Derecho - Sugerencias */}
           <div className="hidden xl:block">
             <div className="sticky top-24 space-y-5">
@@ -1280,7 +1383,6 @@ useEffect(() => {
                   </div>
                 </div>
             </div>
-
               {/* Sugerencias de Usuarios */}
               <div className="rounded-2xl border border-slate-200 bg-white/95 p-5 text-slate-900 shadow-md backdrop-blur-xl dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80 dark:text-white dark:border-slate-700/50 dark:shadow-xl">
                 <div className="flex items-center justify-between mb-5">
@@ -1345,7 +1447,6 @@ useEffect(() => {
                   ))}
                 </div>
               </div>
-
               {/* Sugerencias de Viajes */}
               <div className="rounded-2xl border border-slate-200 bg-white/95 p-5 text-slate-900 shadow-md backdrop-blur-xl dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80 dark:text-white dark:border-slate-700/50 dark:shadow-xl">
                 <div className="flex items-center justify-between mb-5">
@@ -1403,7 +1504,6 @@ useEffect(() => {
         </div>
         </div>
       </div>
-
       {postSuccessMessage && (
         <div className="fixed bottom-24 left-1/2 z-[60] -translate-x-1/2 px-4">
           <div className="flex items-center gap-3 rounded-2xl border border-emerald-300/60 bg-emerald-500/90 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30">
@@ -1419,7 +1519,6 @@ useEffect(() => {
           </div>
         </div>
       )}
-
       {/* Modal para crear Post */}
       {showCreatePostModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
@@ -1434,7 +1533,6 @@ useEffect(() => {
                 ✕
               </button>
             </div>
-
             <div className="max-h-[calc(90vh-160px)] space-y-4 overflow-y-auto px-5 py-5">
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -1452,7 +1550,6 @@ useEffect(() => {
                   {newPostContent.length}/500
                 </p>
               </div>
-
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Ubicación (opcional)
@@ -1466,7 +1563,6 @@ useEffect(() => {
                   className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 dark:border-slate-700 dark:bg-slate-900/70 dark:text-white dark:placeholder:text-slate-500"
                 />
               </div>
-
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Imagen o video (opcional)
@@ -1496,7 +1592,6 @@ useEffect(() => {
                   )}
                 </label>
               </div>
-
               {newPostPreview && (
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -1523,7 +1618,6 @@ useEffect(() => {
                 </div>
               )}
             </div>
-
             <div className="flex items-center justify-end gap-3 border-t border-slate-200 bg-white px-5 py-4 dark:border-slate-700/50 dark:bg-slate-900/80">
               <button
                 type="button"
@@ -1546,7 +1640,6 @@ useEffect(() => {
           </div>
         </div>
       )}
-
       {/* Modal de Compartir */}
       {showShareModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
@@ -1564,7 +1657,6 @@ useEffect(() => {
                 ✕
               </button>
             </div>
-
             {/* Lista de Chats */}
             <div className="max-h-[60vh] overflow-y-auto px-5 py-5">
               {userChats.length === 0 ? (
@@ -1609,7 +1701,6 @@ useEffect(() => {
           </div>
         </div>
       )}
-
       {/* Modal para crear Story */}
       {showStoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
@@ -1624,7 +1715,6 @@ useEffect(() => {
                 ✕
               </button>
             </div>
-
             {/* Content */}
             <div className="max-h-[calc(90vh-200px)] overflow-y-auto px-5 py-5">
               {/* File Input */}
@@ -1648,7 +1738,6 @@ useEffect(() => {
                   </div>
                 </label>
               </div>
-
               {/* Preview */}
               {storyPreview && (
                 <div className="mb-5">
@@ -1672,7 +1761,6 @@ useEffect(() => {
                   </div>
                 </div>
               )}
-
               {/* Text Content */}
               <div className="mb-5">
                 <label className="mb-3 block text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -1687,7 +1775,6 @@ useEffect(() => {
                 />
               </div>
             </div>
-
             {/* Footer */}
             <div className="flex gap-3 border-t border-slate-200 bg-white px-5 py-4 dark:border-slate-700/50 dark:bg-slate-900/80">
               <button
@@ -1707,7 +1794,6 @@ useEffect(() => {
           </div>
         </div>
       )}
-
       {/* Modal para ver Story */}
       {showStoryViewer && currentStory && (
         <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
@@ -1718,9 +1804,8 @@ useEffect(() => {
           >
             <X className="w-8 h-8" />
           </button>
-
           {/* Botón anterior */}
-          {currentStoryIndex > 0 && (
+          {hasPrevStory && (
             <button
               onClick={prevStory}
               className="absolute left-6 z-50 text-white hover:scale-110 transition-transform bg-black/30 rounded-full p-2"
@@ -1728,7 +1813,6 @@ useEffect(() => {
               <ChevronLeft className="w-10 h-10" />
             </button>
           )}
-
           {/* Contenido de la story */}
           <div className="relative w-full max-w-md h-[90vh] bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl overflow-hidden shadow-2xl">
             {/* Header con info del usuario */}
@@ -1771,21 +1855,29 @@ useEffect(() => {
                   </p>
                 </div>
               </div>
-
               {/* Barra de progreso */}
               <div className="flex gap-1 mt-3">
-                {stories.map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={`h-0.5 flex-1 rounded-full ${
-                      idx === currentStoryIndex ? 'bg-white' : 
-                      idx < currentStoryIndex ? 'bg-white/80' : 'bg-white/30'
-                    }`}
-                  />
-                ))}
-              </div>
+                {currentGroupStories.map((_, idx) => {
+                  const width =
+                    idx < currentStoryIndex
+                      ? '100%'
+                      : idx === currentStoryIndex
+                        ? `${Math.min(storyProgress * 100, 100)}%`
+                        : '0%'
+                  return (
+                    <div
+                      key={idx}
+                      className="relative h-0.5 flex-1 overflow-hidden rounded-full bg-white/30"
+                    >
+                      <div
+                        className="absolute inset-y-0 left-0 bg-white"
+                        style={{ width }}
+                      />
+                    </div>
+                  )
+                })}
             </div>
-
+            </div>
             {/* Media (imagen o video) */}
             <div className="w-full h-full flex items-center justify-center bg-black">
               {currentStory.media_type === 'image' ? (
@@ -1803,7 +1895,6 @@ useEffect(() => {
                 />
               )}
             </div>
-
             {/* Texto de la story (si existe) */}
             {currentStory.content && (
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-6">
@@ -1813,9 +1904,8 @@ useEffect(() => {
               </div>
             )}
           </div>
-
           {/* Botón siguiente */}
-          {currentStoryIndex < stories.length - 1 && (
+          {hasNextStory && (
             <button
               onClick={nextStory}
               className="absolute right-6 z-50 text-white hover:scale-110 transition-transform bg-black/30 rounded-full p-2"
@@ -1825,7 +1915,6 @@ useEffect(() => {
           )}
         </div>
       )}
-
       {/* Modal de confirmación para eliminar post */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -1839,14 +1928,12 @@ useEffect(() => {
                 <h3 className="text-xl font-bold text-red-700 dark:text-white">Eliminar Post</h3>
               </div>
             </div>
-
             {/* Body */}
             <div className="px-6 py-6">
               <p className="text-base leading-relaxed text-slate-700 dark:text-slate-300">
                 ¿Estás seguro de que quieres eliminar este post? Esta acción no se puede deshacer.
               </p>
             </div>
-
             {/* Footer */}
             <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4 dark:border-slate-700 dark:bg-slate-800/50">
               <button
