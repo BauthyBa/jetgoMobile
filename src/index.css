@@ -323,9 +323,9 @@ h1 {
 }
 
 .safe-area-top {
-  padding-top: 16px;
-  padding-top: calc(env(safe-area-inset-top) + 16px);
-  padding-top: calc(constant(safe-area-inset-top) + 16px);
+  padding-top: 24px;
+  padding-top: calc(env(safe-area-inset-top) + 24px);
+  padding-top: calc(constant(safe-area-inset-top) + 24px);
 }
 
 .safe-area-bottom {

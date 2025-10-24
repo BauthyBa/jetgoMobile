@@ -765,7 +765,7 @@ export default function ModernChatPage() {
 
       <div className="relative z-10 flex h-screen overflow-hidden bg-gradient-hero">
         {!isChatOpen ? (
-          <div className="safe-area-top mx-auto flex h-full w-full max-w-4xl flex-col px-4 py-8">
+          <div className="mx-auto flex h-full w-full max-w-4xl flex-col px-4 pt-16 pb-8">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Tus chats</h1>
@@ -840,8 +840,8 @@ export default function ModernChatPage() {
             </div>
           </div>
         ) : (
-          <div className="flex h-full w-full min-h-0 flex-col overflow-hidden">
-            <div className="safe-area-top sticky top-0 z-20 border-b border-slate-200/70 bg-white/90 p-4 backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/85 sm:p-6">
+          <div className="safe-area-top safe-area-bottom flex h-full w-full min-h-0 flex-col overflow-hidden">
+            <div className="sticky top-0 z-20 border-b border-slate-200/70 bg-white/90 pt-12 p-4 backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/85 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <Button
