@@ -13,10 +13,9 @@ import {
   Star,
   Home,
   Globe,
-  Image as ImageIcon,
   Loader2
 } from 'lucide-react'
-import { getFeaturedImage } from '@/services/wikipedia'
+import { getFeaturedImage } from '@/services/unsplash'
 
 export default function TripCardEnhanced({ 
   trip, 
@@ -35,23 +34,59 @@ export default function TripCardEnhanced({
   const [destinationImage, setDestinationImage] = useState(null)
   const [imageLoading, setImageLoading] = useState(false)
 
-  // Cargar imagen del destino
+  // Cargar imagen priorizando la provista por el viaje
   useEffect(() => {
-    if (trip?.destination) {
-      setImageLoading(true)
-      getFeaturedImage(trip.destination)
-        .then(imageUrl => {
-          setDestinationImage(imageUrl)
-        })
-        .catch(error => {
-          console.error('Error loading destination image:', error)
-          setDestinationImage(null)
-        })
-        .finally(() => {
-          setImageLoading(false)
-        })
+    let cancelled = false
+
+    if (!trip) {
+      setDestinationImage(null)
+      setImageLoading(false)
+      return () => {
+        cancelled = true
+      }
     }
-  }, [trip?.destination])
+
+    if (trip.imageUrl) {
+      setDestinationImage(trip.imageUrl)
+      setImageLoading(false)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    if (!trip.destination) {
+      setDestinationImage(null)
+      setImageLoading(false)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    setImageLoading(true)
+    setDestinationImage(null)
+
+    getFeaturedImage(trip.destination)
+      .then((imageUrl) => {
+        if (!cancelled) {
+          setDestinationImage(imageUrl)
+        }
+      })
+      .catch((error) => {
+        console.error('Error loading destination image:', error)
+        if (!cancelled) {
+          setDestinationImage(null)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setImageLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [trip, trip?.imageUrl, trip?.destination])
 
   if (!trip) return null
 

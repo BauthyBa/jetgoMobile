@@ -17,6 +17,10 @@ import { respondToApplication } from '@/services/applications'
 import { api, upsertProfileToBackend } from '@/services/api'
 import InviteFriendsModal from '@/components/InviteFriendsModal'
 import { transcriptionService } from '@/services/transcription'
+import CameraCapture from '@/components/CameraCapture'
+import LocationCapture from '@/components/LocationCapture'
+import SimpleLocationMap from '@/components/SimpleLocationMap'
+import { Paperclip, Camera, MapPin, Mic, Smile, MoreHorizontal } from 'lucide-react'
 
 function normalizeRoomName(room) {
   return (room?.display_name || room?.name || '').trim()
@@ -48,12 +52,17 @@ export default function ModernChatPage() {
   const [showInviteFriends, setShowInviteFriends] = useState(false)
   const [showAudioRecorder, setShowAudioRecorder] = useState(false)
   const [showAudioTranscriber, setShowAudioTranscriber] = useState(false)
+  const [showCamera, setShowCamera] = useState(false)
+  const [showLocationCapture, setShowLocationCapture] = useState(false)
+  const [showActionMenu, setShowActionMenu] = useState(false)
   const [transcribingAudio, setTranscribingAudio] = useState(null)
   const [audioTranscriptions, setAudioTranscriptions] = useState({})
   const [showDeleteMessageConfirm, setShowDeleteMessageConfirm] = useState(false)
   const [messageToDelete, setMessageToDelete] = useState(null)
   const [roomDisplayNames, setRoomDisplayNames] = useState({})
   const fileInputRef = useRef(null)
+  const actionMenuRef = useRef(null)
+  const actionMenuButtonRef = useRef(null)
   const unsubscribeRef = useRef(null)
   const messageEndRef = useRef(null)
   const userNamesRef = useRef({})
@@ -101,6 +110,24 @@ export default function ModernChatPage() {
   useEffect(() => {
     roomDisplayNamesRef.current = roomDisplayNames
   }, [roomDisplayNames])
+
+  useEffect(() => {
+    if (!showActionMenu) return undefined
+    const handleClickOutside = (event) => {
+      if (
+        actionMenuRef.current &&
+        !actionMenuRef.current.contains(event.target) &&
+        actionMenuButtonRef.current &&
+        !actionMenuButtonRef.current.contains(event.target)
+      ) {
+        setShowActionMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showActionMenu])
 
   const getRoomTitle = useCallback(
     (room) => {
@@ -560,6 +587,102 @@ export default function ModernChatPage() {
     }
   }
 
+  const handleCameraCapture = async (imageBlob) => {
+    try {
+      if (!imageBlob || !activeRoomId || !profile?.user_id) return
+
+      if (imageBlob.size > 10 * 1024 * 1024) {
+        alert('La imagen es demasiado grande. Máximo 10MB.')
+        return
+      }
+
+      const endpoints = [
+        'https://jetgoback.onrender.com/api/chat/upload-camera/',
+        'https://jetgoback.onrender.com/api/chat/upload-file/',
+      ]
+
+      let lastError = null
+
+      for (const endpoint of endpoints) {
+        try {
+          const formData = new FormData()
+          formData.append('file', imageBlob, 'camera-photo.jpg')
+          formData.append('room_id', activeRoomId)
+          formData.append('user_id', profile.user_id)
+
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            body: formData,
+            mode: 'cors',
+          })
+
+          const rawBody = await response.text()
+          let parsedBody = null
+          if (rawBody) {
+            try {
+              parsedBody = JSON.parse(rawBody)
+            } catch {
+              parsedBody = rawBody
+            }
+          }
+
+          if (!response.ok) {
+            const message =
+              (parsedBody && typeof parsedBody === 'object' && (parsedBody.error || parsedBody.detail)) ||
+              (typeof parsedBody === 'string' ? parsedBody : null) ||
+              `Error HTTP ${response.status}`
+            throw new Error(message)
+          }
+
+          const status = parsedBody && typeof parsedBody === 'object' ? parsedBody.status : null
+          if (status && status !== 'success') {
+            const message = parsedBody.error || parsedBody.message || 'Error subiendo imagen'
+            throw new Error(message)
+          }
+
+          const updatedMessages = await fetchMessages(activeRoomId)
+          setMessages(updatedMessages)
+          return
+        } catch (attemptError) {
+          console.warn(`Camera upload failed via ${endpoint}`, attemptError)
+          lastError = attemptError
+        }
+      }
+
+      if (lastError) throw lastError
+      throw new Error('Error subiendo imagen. Intenta nuevamente.')
+    } catch (uploadError) {
+      console.error('Error uploading camera image:', uploadError)
+      alert(uploadError.message || 'Error subiendo imagen. Intenta nuevamente.')
+    } finally {
+      setShowCamera(false)
+    }
+  }
+
+  const handleLocationSend = async (locationData) => {
+    try {
+      if (!activeRoomId || !profile?.user_id) return
+
+      const messageContent = JSON.stringify({
+        type: 'location',
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        address: locationData.address,
+        timestamp: locationData.timestamp,
+        isLive: locationData.isLive,
+      })
+
+      await sendMessage(activeRoomId, messageContent, 'location')
+      const updatedMessages = await fetchMessages(activeRoomId)
+      setMessages(updatedMessages)
+    } catch (error) {
+      console.error('Error sending location:', error)
+      alert('Error enviando ubicación. Intenta nuevamente.')
+    } finally {
+      setShowLocationCapture(false)
+    }
+  }
+
   const handleAudioRecorded = async (audioBlob) => {
     try {
       if (!activeRoomId || !profile?.user_id) return
@@ -612,6 +735,52 @@ export default function ModernChatPage() {
 
   const handleTranscriptionCancel = () => {
     setShowAudioTranscriber(false)
+  }
+
+  const toggleActionMenuVisibility = () => {
+    setShowActionMenu((prev) => !prev)
+  }
+
+  const openFilePicker = () => {
+    setShowActionMenu(false)
+    fileInputRef.current?.click()
+  }
+
+  const openCameraModal = () => {
+    setShowActionMenu(false)
+    setShowCamera(true)
+  }
+
+  const openLocationModal = () => {
+    setShowActionMenu(false)
+    setShowLocationCapture(true)
+  }
+
+  const toggleAudioRecorderPanel = () => {
+    setShowActionMenu(false)
+    setShowAudioRecorder((prev) => {
+      const next = !prev
+      if (next) {
+        setShowAudioTranscriber(false)
+      }
+      return next
+    })
+  }
+
+  const toggleAudioTranscriberPanel = () => {
+    setShowActionMenu(false)
+    setShowAudioTranscriber((prev) => {
+      const next = !prev
+      if (next) {
+        setShowAudioRecorder(false)
+      }
+      return next
+    })
+  }
+
+  const toggleEmojiPickerPanel = () => {
+    setShowActionMenu(false)
+    setShowEmojiPicker((prev) => !prev)
   }
 
   const handleTranscribeAudio = async (messageId, audioUrl) => {
@@ -1134,6 +1303,40 @@ export default function ModernChatPage() {
                                         </a>
                                       )}
                                     </div>
+                                  ) : message.message_type === 'location' ||
+                                    (() => {
+                                      try {
+                                        const parsed = JSON.parse(message.content)
+                                        return parsed.type === 'location'
+                                      } catch {
+                                        return false
+                                      }
+                                    })() ? (
+                                    <div className="space-y-2">
+                                      {(() => {
+                                        try {
+                                          const locationData = JSON.parse(message.content)
+                                          return (
+                                            <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60">
+                                              <SimpleLocationMap
+                                                latitude={locationData.latitude}
+                                                longitude={locationData.longitude}
+                                                address={locationData.address}
+                                                timestamp={locationData.timestamp}
+                                                isLive={locationData.isLive}
+                                              />
+                                            </div>
+                                          )
+                                        } catch (parseError) {
+                                          console.error('Error parsing location data:', parseError)
+                                          return (
+                                            <div className="rounded-xl bg-slate-800/70 px-4 py-3 text-sm text-slate-200">
+                                              📍 Ubicación compartida (error al cargar)
+                                            </div>
+                                          )
+                                        }
+                                      })()}
+                                    </div>
                                   ) : (
                                     displayContent && <div className="whitespace-pre-wrap break-words">{displayContent}</div>
                                   )}
@@ -1276,22 +1479,92 @@ export default function ModernChatPage() {
                         accept="image/*,application/pdf,.doc,.docx,.txt"
                         onChange={handleFileUpload}
                       />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="h-12 w-12 shrink-0 rounded-full bg-slate-200 text-lg text-slate-600 transition-colors hover:bg-slate-300 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-700/80"
-                      >
-                        📎
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => setShowAudioRecorder((prev) => !prev)}
-                        className="h-12 w-12 shrink-0 rounded-full bg-slate-200 text-lg text-slate-600 transition-colors hover:bg-slate-300 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-700/80"
-                      >
-                        🎤
-                      </Button>
+                      <div className="relative">
+                        <Button
+                          ref={actionMenuButtonRef}
+                          type="button"
+                          variant="secondary"
+                          onClick={toggleActionMenuVisibility}
+                          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-colors ${
+                            showActionMenu
+                              ? 'bg-emerald-500 text-emerald-950 hover:bg-emerald-400 dark:bg-emerald-500 dark:text-emerald-950 dark:hover:bg-emerald-400'
+                              : 'bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-700/80'
+                          }`}
+                          aria-label="Abrir menú de acciones"
+                        >
+                          <MoreHorizontal className="h-5 w-5" />
+                        </Button>
+                        {showActionMenu && (
+                          <div
+                            ref={actionMenuRef}
+                            className="absolute bottom-full left-0 z-30 mb-3 w-60 rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-xl backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/95"
+                          >
+                            <div className="space-y-1">
+                              <button
+                                type="button"
+                                onClick={openFilePicker}
+                                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-emerald-300"
+                              >
+                                <Paperclip className="h-4 w-4" />
+                                Adjuntar archivo
+                              </button>
+                              <button
+                                type="button"
+                                onClick={openCameraModal}
+                                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-emerald-300"
+                              >
+                                <Camera className="h-4 w-4" />
+                                Tomar foto
+                              </button>
+                              <button
+                                type="button"
+                                onClick={openLocationModal}
+                                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-emerald-300"
+                              >
+                                <MapPin className="h-4 w-4" />
+                                Compartir ubicación
+                              </button>
+                              <div className="my-1 h-px w-full bg-slate-200/70 dark:bg-slate-700/60" />
+                              <button
+                                type="button"
+                                onClick={toggleAudioRecorderPanel}
+                                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                                  showAudioRecorder
+                                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300'
+                                    : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-emerald-300'
+                                }`}
+                              >
+                                <Mic className="h-4 w-4" />
+                                Grabar audio
+                              </button>
+                              <button
+                                type="button"
+                                onClick={toggleAudioTranscriberPanel}
+                                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                                  showAudioTranscriber
+                                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300'
+                                    : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-emerald-300'
+                                }`}
+                              >
+                                <span className="flex h-4 w-4 items-center justify-center">🎙️</span>
+                                Transcribir audio
+                              </button>
+                              <button
+                                type="button"
+                                onClick={toggleEmojiPickerPanel}
+                                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition ${
+                                  showEmojiPicker
+                                    ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300'
+                                    : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 dark:text-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-emerald-300'
+                                }`}
+                              >
+                                <Smile className="h-4 w-4" />
+                                Emoji
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       <div className="relative flex-1">
                         <Input
                           value={newMessage}
@@ -1303,24 +1576,8 @@ export default function ModernChatPage() {
                             }
                           }}
                           placeholder="Escribí un mensaje..."
-                          className="rounded-full border-slate-200 bg-white py-3 pl-5 pr-24 text-slate-700 placeholder:text-slate-400 shadow-sm focus:border-emerald-400/60 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200 dark:placeholder:text-slate-500"
+                          className="rounded-full border-slate-200 bg-white py-3 pl-5 pr-5 text-slate-700 placeholder:text-slate-400 shadow-sm focus:border-emerald-400/60 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200 dark:placeholder:text-slate-500"
                         />
-                        <button
-                          type="button"
-                          className="absolute right-12 top-1/2 -translate-y-1/2 text-xl text-slate-400 transition-colors hover:text-emerald-500 dark:hover:text-emerald-300"
-                          onClick={() => setShowAudioTranscriber((prev) => !prev)}
-                          title="Transcribir voz"
-                        >
-                          🎙️
-                        </button>
-                        <button
-                          type="button"
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-xl text-slate-400 transition-colors hover:text-emerald-500 dark:hover:text-emerald-300"
-                          onClick={() => setShowEmojiPicker((prev) => !prev)}
-                          title="Agregar emoji"
-                        >
-                          😊
-                        </button>
                         <EmojiPicker
                           isOpen={showEmojiPicker}
                           onClose={() => setShowEmojiPicker(false)}
@@ -1466,6 +1723,14 @@ export default function ModernChatPage() {
             )}
           </div>
         </div>
+      )}
+
+      {showCamera && (
+        <CameraCapture onCapture={handleCameraCapture} onCancel={() => setShowCamera(false)} />
+      )}
+
+      {showLocationCapture && (
+        <LocationCapture onLocationSend={handleLocationSend} onCancel={() => setShowLocationCapture(false)} />
       )}
 
       {isChatOpen && showInviteFriends && (

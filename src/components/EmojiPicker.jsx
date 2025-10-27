@@ -43,6 +43,18 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose }) {
   const [activeCategory, setActiveCategory] = useState('smileys')
   const [searchQuery, setSearchQuery] = useState('')
   const pickerRef = useRef(null)
+  const [pickerWidth, setPickerWidth] = useState(320)
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (typeof window === 'undefined') return
+      const maxAvailable = Math.max(260, window.innerWidth - 32)
+      setPickerWidth(Math.min(320, maxAvailable))
+    }
+    updateWidth()
+    window.addEventListener('resize', updateWidth)
+    return () => window.removeEventListener('resize', updateWidth)
+  }, [])
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -71,9 +83,10 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose }) {
       style={{
         position: 'absolute',
         bottom: '100%',
-        right: 0,
+        left: '50%',
+        transform: 'translateX(-50%)',
         marginBottom: 8,
-        width: 320,
+        width: pickerWidth,
         height: 400,
         background: '#1e293b',
         border: '1px solid #334155',
@@ -179,5 +192,4 @@ export default function EmojiPicker({ onEmojiSelect, isOpen, onClose }) {
     </div>
   )
 }
-
 
