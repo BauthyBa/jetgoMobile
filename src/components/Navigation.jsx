@@ -270,7 +270,7 @@ export default function Navigation() {
 
       {!hideBottomNav && (
         <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/70 bg-white/70 backdrop-blur-xl shadow-lg dark:border-white/10 dark:bg-slate-900/90 md:hidden">
-          <div className="mx-auto flex max-w-xl justify-around px-2 py-2">
+          <div className="safe-area-bottom mx-auto flex max-w-xl justify-around px-2 py-2">
             {navItems.map((item) => {
               const Icon = item.icon
               const active = item.isActive(location.pathname)

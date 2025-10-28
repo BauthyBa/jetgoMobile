@@ -329,10 +329,9 @@ h1 {
 }
 
 .safe-area-bottom {
-  padding-bottom: 96px;
-  padding-bottom: calc(env(safe-area-inset-bottom, 96px));
-  padding-left: calc(env(safe-area-inset-left, 16px));
-  padding-right: calc(env(safe-area-inset-right, 16px));
+  padding-bottom: 16px;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 16px);
+  padding-bottom: calc(constant(safe-area-inset-bottom) + 16px);
 }
 
 /* Text truncation helpers */
