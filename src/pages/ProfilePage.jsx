@@ -554,7 +554,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-hero pb-24 md:pb-12">
+    <div className="min-h-screen bg-gradient-hero safe-area-bottom">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-[calc(env(safe-area-inset-top)+3rem)] md:pt-28">
         {/* Header del perfil */}
         <div className="glass-card mb-6 p-4 sm:p-6">
