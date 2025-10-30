@@ -20,7 +20,7 @@ import { transcriptionService } from '@/services/transcription'
 import CameraCapture from '@/components/CameraCapture'
 import LocationCapture from '@/components/LocationCapture'
 import SimpleLocationMap from '@/components/SimpleLocationMap'
-import { Paperclip, Camera, MapPin, Mic, Smile, MoreHorizontal } from 'lucide-react'
+import { Paperclip, Camera, MapPin, Mic, Smile, MoreHorizontal, Send } from 'lucide-react'
 
 function normalizeRoomName(room) {
   return (room?.display_name || room?.name || '').trim()
@@ -1576,7 +1576,8 @@ export default function ModernChatPage() {
                             }
                           }}
                           placeholder="Escribí un mensaje..."
-                          className="rounded-full border-slate-200 bg-white py-3 pl-5 pr-5 text-slate-700 placeholder:text-slate-400 shadow-sm focus:border-emerald-400/60 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200 dark:placeholder:text-slate-500"
+                          className="rounded-full border-slate-200 bg-white py-4 pl-5 pr-14 text-slate-700 placeholder:text-slate-400 shadow-sm focus:border-emerald-400/60 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200 dark:placeholder:text-slate-500 min-h-[48px] text-base"
+                          style={{ height: '48px' }}
                         />
                         <EmojiPicker
                           isOpen={showEmojiPicker}
@@ -1589,9 +1590,9 @@ export default function ModernChatPage() {
                       </div>
                       <Button
                         onClick={handleSend}
-                        className="h-12 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 font-semibold text-white hover:from-emerald-600 hover:to-emerald-700"
+                        className="h-12 w-12 p-0 flex items-center justify-center rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 font-semibold text-white hover:from-emerald-600 hover:to-emerald-700"
                       >
-                        Enviar
+                        <Send className="h-6 w-6" />
                       </Button>
                     </div>
                   </div>

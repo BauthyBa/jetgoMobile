@@ -938,6 +938,7 @@ export default function ViajesPage() {
       {applyModal.open && (
         <ApplyToTripModal
           trip={applyModal.trip}
+          isOpen={applyModal.open}
           onClose={() => setApplyModal({ open: false, trip: null })}
           onSuccess={async () => {
             setApplyModal({ open: false, trip: null })

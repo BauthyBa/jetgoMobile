@@ -11,6 +11,7 @@ import {
   Bus,
   Train,
   Plane,
+  Ship,
   Home,
   Globe,
   Loader2,
@@ -24,6 +25,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import CurrencySelect from '@/components/CurrencySelect'
 import { getSession } from '@/services/supabase'
+// import { mapTransportTypeForBackend } from "@/utils/transport"; // TODO: Crear este archivo en src/utils/transport.js
 import { createTrip, updateTrip } from '@/services/trips'
 import { searchCities, searchCountries } from '@/services/nominatim'
 import ROUTES from '@/config/routes'
@@ -504,7 +506,10 @@ export default function CreateTripForm() {
 
 
       // Preparar datos para envío - convertir a snake_case para el backend
-
+      // const backendTransportType = mapTransportTypeForBackend(trip.tipo)
+      // if (!backendTransportType) {
+      //   throw new Error('Tipo de transporte inválido. Por favor selecciona una opción válida.')
+      // }
       const tripData = {
 
         creator_id: profile.id,
@@ -534,9 +539,9 @@ export default function CreateTripForm() {
         currency: trip.currency,
 
         description: trip.description || '',
-
-        tipo: trip.tipo,
-
+        // Enviar tanto 'tipo' como 'transport_type' normalizados para compatibilidad
+        // tipo: backendTransportType,
+        // transport_type: backendTransportType,
         country_code: isoCountry || null
 
       }
@@ -709,7 +714,8 @@ export default function CreateTripForm() {
 
     { value: 'tren', label: 'Tren', icon: Train },
 
-    { value: 'avion', label: 'Avión', icon: Plane }
+    { value: 'avion', label: 'Avión', icon: Plane },
+    { value: 'barco', label: 'Barco', icon: Ship }
 
   ]
 
